@@ -1,0 +1,432 @@
+SG-SLAM BuildGraph Benchmark Directions (ROS1 / catkin)
+
+Purpose
+- This guide explains exactly how to benchmark BuildGraph in SG-SLAM.
+- It is written for new team members using ROS1 Noetic + catkin.
+- The benchmark executable measures BuildGraph runtime in isolation (not full SLAM runtime).
+
+Prerequisites
+- You have a ROS1 catkin workspace (example: ~/catkin_ws).
+- SG-SLAM is in your workspace under src (example: ~/catkin_ws/src/SG-SLAM).
+- ROS Noetic is installed.
+
+====================================================================
+A) One-time build setup for benchmark target
+====================================================================
+
+0) Start Docker container from the repo root. This is in the docker commands file:
+docker run --rm -it --platform linux/amd64 \
+  -v "$(pwd):/opt/catkin_ws/src/SG-SLAM" \
+  sg-slam:noetic
+
+1) Go to your catkin workspace root
+Command:
+  cd ~/catkin_ws
+What it does:
+- Moves your shell to the workspace root directory, where catkin configuration and build commands should be run.
+
+2) Source ROS Noetic environment
+Command:
+  source /opt/ros/noetic/setup.bash
+What it does:
+- Loads ROS environment variables into your shell (ROS_PACKAGE_PATH, tools, etc.).
+- Required before running catkin commands in many setups.
+
+3) Configure catkin CMake options for release benchmarking -- IMPORTANT
+Command:
+  catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release -DENABLE_MILESTONE1_BENCHMARKS=ON
+What it does:
+- Sets CMake configuration options for your catkin workspace.
+- -DCMAKE_BUILD_TYPE=Release enables compiler optimizations so timing is realistic.
+- -DENABLE_MILESTONE1_BENCHMARKS=ON ensures benchmark targets (including benchmark_buildgraph) are built.
+
+4) Build the SG-SLAM package
+Command:
+  catkin build semgraph_slam
+What it does:
+- Compiles the semgraph_slam package and its benchmark target.
+- Produces binaries under your catkin build/devel layout.
+
+====================================================================
+B) Find and validate benchmark executable
+====================================================================
+
+5) Locate benchmark_buildgraph binary
+Command:
+  BENCH_BIN="$(find build devel -type f -name benchmark_buildgraph | head -n 1)"
+  echo "$BENCH_BIN"
+What it does:
+- Searches catkin build artifacts for the benchmark executable.
+- Stores the first found path in BENCH_BIN.
+- Prints it so you can verify the file path.
+
+6) Print benchmark command options
+Command:
+  "$BENCH_BIN" --help
+What it does:
+- Shows all supported benchmark CLI arguments.
+- Useful for confirming available parameters and defaults.
+
+====================================================================
+C) Run a single benchmark test
+====================================================================
+
+7) Run one benchmark scenario
+Command:
+  "$BENCH_BIN" \
+    --nodes 256 \
+    --frames 300 \
+    --warmup 30 \
+    --seed 570 \
+    --edge-th 40 \
+    --subinterval 40 \
+    --node-dim 8 \
+    --subgraph-edge-th 20
+What it does:
+- Executes BuildGraph repeatedly on synthetic frame data.
+- Uses warmup frames first (ignored for reporting) so startup effects do not skew timing.
+- Then reports timing metrics from the timed frames.
+
+What each argument means:
+- --nodes 256
+  Number of semantic boxes in each synthetic frame.
+  Higher values increase graph size and typically runtime.
+
+- --frames 300
+  Number of measured frames.
+  More frames give more stable timing statistics.
+
+- --warmup 30
+  Number of unmeasured warmup frames before timing starts.
+  Helps reduce effects from cache cold start and first-call overhead.
+
+- --seed 570
+  Random seed for synthetic data generation.
+  Keep fixed for reproducible comparisons between code versions.
+
+- --edge-th 40
+  BuildGraph edge distance threshold (meters).
+  Larger threshold usually creates more edges and can increase compute cost.
+
+- --subinterval 40
+  Number of radial bins used in local descriptor embedding.
+  Affects descriptor dimensionality and histogram cost.
+
+- --node-dim 8
+  Number of global eigenvector-based dimensions retained.
+  Larger values can increase matrix post-processing cost.
+
+- --subgraph-edge-th 20
+  Triangle subgraph edge threshold (meters) for local triangle enumeration.
+  Larger threshold can include more neighbors and more triangle combinations.
+
+====================================================================
+D) Sweep multiple graph sizes and save results
+====================================================================
+
+8) Run a node-count sweep and store logs
+MAKE SURE YOURE IN THE catkin_ws DIRECTORY!
+THEN JUST RUN THIS COMMAND IN YOUR TERMINAL
+Command:
+  mkdir -p bench_results
+
+  for N in 64 128 256 512 768 1024; do
+    echo "===== nodes=${N} ====="
+    "$BENCH_BIN" --nodes "$N" --frames 300 --warmup 30 \
+      --edge-th 40 --subinterval 40 --node-dim 8 --subgraph-edge-th 20 \
+      | tee "bench_results/buildgraph_nodes_${N}.txt"
+  done
+What it does:
+- Creates an output directory for benchmark logs.
+- Runs benchmark for each node count.
+- Uses tee so output is shown on screen and saved to a file.
+
+====================================================================
+E) Launch normal SG-SLAM run (separate terminal)
+====================================================================
+
+9) In another terminal, launch your normal KITTI pipeline
+Command:
+  cd ~/catkin_ws
+  source /opt/ros/noetic/setup.bash
+  source devel/setup.bash
+  roslaunch semgraph_slam semgraph_slam_kitti.launch
+What it does:
+- Runs SG-SLAM as usual using your existing launch flow.
+- This is separate from the standalone benchmark executable.
+
+Why separate terminals?
+- One terminal can run SLAM for functional validation.
+- Another terminal can run controlled BuildGraph micro-benchmarks.
+
+====================================================================
+F) KITTI-backed BuildGraph timing during roslaunch (real pipeline)
+====================================================================
+
+This mode measures BuildGraph inside the actual SLAM runtime path.
+Unlike benchmark_buildgraph, this uses real KITTI frames and real clustering output.
+
+10) Rebuild after timing instrumentation changes
+Command:
+  cd ~/catkin_ws
+  source /opt/ros/noetic/setup.bash
+  catkin build semgraph_slam
+What it does:
+- Recompiles semgraph_slam so the runtime timing logger is included.
+
+11) Run KITTI launch with BuildGraph timing enabled
+Command:
+  cd ~/catkin_ws
+  source /opt/ros/noetic/setup.bash
+  source devel/setup.bash
+  SGSLAM_BUILDGRAPH_TIMING=1 \
+  SGSLAM_BUILDGRAPH_TIMING_DATASET=kitti \
+  SGSLAM_BUILDGRAPH_TIMING_OUT="$PWD/buildgraph_kitti_timing.csv" \
+  roslaunch semgraph_slam semgraph_slam_kitti.launch
+What it does:
+- Turns on per-frame BuildGraph timing at runtime.
+- Restricts logging to dataset name "kitti".
+- Writes per-frame timing CSV to buildgraph_kitti_timing.csv.
+
+Environment variables explained:
+- SGSLAM_BUILDGRAPH_TIMING=1
+  Enables runtime BuildGraph timing logger.
+
+- SGSLAM_BUILDGRAPH_TIMING_DATASET=kitti
+  Optional dataset filter. Only frames from this dataset tag are logged.
+  Use this when you want strict KITTI-only measurements.
+
+- SGSLAM_BUILDGRAPH_TIMING_OUT=/path/to/file.csv
+  Output file path for per-frame CSV logs.
+  If omitted, default file is buildgraph_timing.csv in the current working directory.
+
+12) Inspect the CSV output
+Command:
+  head -n 5 ~/catkin_ws/buildgraph_kitti_timing.csv
+What it does:
+- Shows CSV header and first few records.
+
+CSV columns:
+- frame_idx: sequential logged frame number.
+- dataset: dataset tag seen by the SLAM pipeline.
+- cluster_boxes: number of clustered boxes passed into BuildGraph.
+- graph_nodes: number of nodes in graph output.
+- graph_edges: number of edges in graph output.
+- buildgraph_ms: BuildGraph latency for that frame in milliseconds.
+
+13) Read summary metrics appended at file end
+Command:
+  grep '^# summary_' ~/catkin_ws/buildgraph_kitti_timing.csv
+What it does:
+- Prints summary stats generated automatically when roslaunch exits:
+  - summary_samples
+  - summary_avg_ms
+  - summary_p50_ms
+  - summary_p95_ms
+  - summary_approx_fps
+
+14) Optional quick stats from raw rows only (ignores summary lines)
+Command:
+  awk -F, 'BEGIN{n=0;sum=0} $1 !~ /^#/ && $1 != "frame_idx" {n++; sum+=$6} END {if(n>0) printf("rows=%d avg_ms=%.4f\n", n, sum/n); else print "no rows"}' ~/catkin_ws/buildgraph_kitti_timing.csv
+What it does:
+- Computes average BuildGraph time directly from CSV data rows.
+
+Important interpretation note:
+- This mode is dataset-backed and realistic, but includes frame-to-frame scene variability.
+- It still measures BuildGraph only (not the full SLAM frame time).
+- Compare avg_ms and p95_ms together for a complete view (typical + tail latency).
+
+====================================================================
+G) Full SLAM Pipeline Profiling (Front-end + Odometry Thread + Mapping Thread)
+====================================================================
+
+This mode profiles major pipeline components across the full ROS execution path.
+It writes consistent CSV files with per-frame stage times and stage percentages.
+
+What gets profiled:
+- Front-end core stages inside SemGraphSLAM::mainProcess
+  deskew, KITTI correction, preprocess, voxelize, cluster, BuildGraph,
+  graph matching, threshold, prediction, fuse, registration, relocalization,
+  model update, local map update, local graph update, push pose.
+
+- ROS odometry thread stages
+  load data, front-end call, queue push, TF publish, odometry publish,
+  save trajectory row, visualization publish, total wall loop time.
+
+- ROS mapping thread stages
+  dequeue, mapping mainProcess, PGO, map update, map publish,
+  total mapping loop time.
+
+15) Rebuild with latest instrumentation
+Command:
+  cd ~/catkin_ws
+  source /opt/ros/noetic/setup.bash
+  catkin build semgraph_slam
+What it does:
+- Rebuilds semgraph_slam so all profiler hooks are compiled in.
+
+16) Run launch with full profiling enabled
+Command:
+  cd ~/catkin_ws
+  source /opt/ros/noetic/setup.bash
+  source devel/setup.bash
+  SGSLAM_PIPELINE_PROFILE=1 \
+  SGSLAM_PIPELINE_PROFILE_DATASET=kitti \
+  SGSLAM_PIPELINE_PROFILE_OUT="$PWD/slam_frontend_profile.csv" \
+  SGSLAM_ODOM_PROFILE_OUT="$PWD/slam_odometry_profile.csv" \
+  SGSLAM_MAPPING_PROFILE_OUT="$PWD/slam_mapping_profile.csv" \
+  roslaunch semgraph_slam semgraph_slam_kitti.launch
+What it does:
+- Enables full pipeline profiling.
+- Writes three CSV files in the current directory.
+- Keeps existing console behavior (odometry/mapping prints) unchanged.
+
+Environment variables explained:
+- SGSLAM_PIPELINE_PROFILE=1
+  Master switch for full pipeline profiling.
+
+- SGSLAM_PIPELINE_PROFILE_DATASET=kitti
+  Optional filter for dataset-tagged logs in front-end/odometry CSV.
+
+- SGSLAM_PIPELINE_PROFILE_OUT=/path/slam_frontend_profile.csv
+  Front-end stage timing CSV output path.
+
+- SGSLAM_ODOM_PROFILE_OUT=/path/slam_odometry_profile.csv
+  Odometry-thread stage timing CSV output path.
+
+- SGSLAM_MAPPING_PROFILE_OUT=/path/slam_mapping_profile.csv
+  Mapping-thread stage timing CSV output path.
+
+17) Verify files were created
+Command:
+  ls -lh ~/catkin_ws/slam_*_profile.csv
+What it does:
+- Confirms all profiling CSV files exist and have content.
+
+18) Preview first rows + summary lines
+Command:
+  head -n 5 ~/catkin_ws/slam_frontend_profile.csv
+  head -n 5 ~/catkin_ws/slam_odometry_profile.csv
+  head -n 5 ~/catkin_ws/slam_mapping_profile.csv
+
+  grep '^# summary_' ~/catkin_ws/slam_frontend_profile.csv
+  grep '^# summary_' ~/catkin_ws/slam_odometry_profile.csv
+  grep '^# summary_' ~/catkin_ws/slam_mapping_profile.csv
+What it does:
+- Shows schema and sample rows.
+- Prints summary metrics appended when the process exits.
+
+How to interpret percentages in these CSVs:
+- Front-end CSV percentages are relative to front-end total_ms for that frame.
+  Example: buildgraph_pct=18 means BuildGraph consumed 18% of mainProcess time.
+
+- Odometry CSV percentages are relative to wall_total_ms for each odometry loop.
+  This includes data loading and ROS publication overhead.
+
+- Mapping CSV percentages are relative to mapping loop_total_ms.
+  This captures backend computational share (mainProcess, PGO, map update/publish).
+
+Important performance note for Docker:
+- Wall-clock metrics are still useful and are included in all CSV files.
+- Container scheduling can add noise. For reliable comparisons:
+  1) Run multiple repeats.
+  2) Compare medians and p95 where possible.
+  3) Keep container CPU settings and host load consistent between runs.
+
+Quick one-liner to extract average BuildGraph contribution from front-end CSV:
+Command:
+  awk -F, 'BEGIN{n=0;sum=0} $1 !~ /^#/ && $1 != "frame_idx" {n++; sum+=$29} END {if(n>0) printf("avg_buildgraph_pct=%.3f\n", sum/n); else print "no rows"}' ~/catkin_ws/slam_frontend_profile.csv
+What it does:
+- Computes the mean per-frame BuildGraph percentage contribution.
+
+Quick one-liner to extract average registration contribution:
+Command:
+  awk -F, 'BEGIN{n=0;sum=0} $1 !~ /^#/ && $1 != "frame_idx" {n++; sum+=$34} END {if(n>0) printf("avg_registration_pct=%.3f\n", sum/n); else print "no rows"}' ~/catkin_ws/slam_frontend_profile.csv
+What it does:
+- Computes mean per-frame percentage consumed by registration.
+
+====================================================================
+How to read benchmark measurements
+====================================================================
+
+The benchmark prints fields like:
+- buildgraph_benchmark_result
+- nodes_per_frame
+- timed_frames
+- warmup_frames
+- avg_ms
+- p50_ms
+- p95_ms
+- approx_fps
+- last_graph_nodes
+- last_graph_edges
+
+Detailed meaning:
+- nodes_per_frame
+  Number of boxes passed to BuildGraph for each frame in that run.
+
+- timed_frames
+  Number of frames included in reported timing statistics.
+
+- warmup_frames
+  Number of frames intentionally excluded from timing.
+
+- avg_ms
+  Mean runtime in milliseconds across timed frames:
+  avg_ms = (sum of per-frame elapsed time) / timed_frames
+
+- p50_ms
+  50th percentile runtime (median).
+  About half the measured frames are faster than this value.
+
+- p95_ms
+  95th percentile runtime.
+  Captures tail latency and occasional slow frames better than average.
+
+- approx_fps
+  Approximate throughput derived from average latency:
+  approx_fps = 1000 / avg_ms
+  (since 1000 ms = 1 second)
+
+- last_graph_nodes
+  Node count in the graph returned for the final processed frame.
+
+- last_graph_edges
+  Edge count in the graph returned for the final processed frame.
+
+Why avg + p95 together?
+- avg_ms tells typical overall speed.
+- p95_ms tells worst-case behavior for most frames.
+- For real-time systems, p95 can be as important as average.
+
+====================================================================
+Suggested team benchmarking protocol
+====================================================================
+
+Use this protocol so results are comparable across team members:
+1) Always build in Release mode.
+2) Keep --seed fixed unless intentionally testing random sensitivity.
+3) Record machine details (CPU model, core count, OS, compiler version).
+4) Run at least 300 timed frames with 30 warmup frames.
+5) Compare both avg_ms and p95_ms.
+6) Run each config at least 3 times and average the reported avg_ms/p95_ms.
+
+====================================================================
+Quick troubleshooting
+====================================================================
+
+Issue: BENCH_BIN is empty
+- Cause: benchmark target may not have built.
+- Fix: rerun catkin config with ENABLE_MILESTONE1_BENCHMARKS=ON, then catkin build semgraph_slam.
+
+Issue: command not found: catkin
+- Cause: catkin_tools not installed or ROS environment not sourced.
+- Fix: install catkin tools and source /opt/ros/noetic/setup.bash.
+
+Issue: benchmark seems very slow
+- Cause: Debug build, CPU throttling, or heavy background processes.
+- Fix: use Release build, close heavy apps, keep laptop on power.
+
+Issue: benchmark numbers vary a lot run-to-run
+- Cause: system load variability and thermal conditions.
+- Fix: increase frames, run multiple repeats, and compare medians/p95.

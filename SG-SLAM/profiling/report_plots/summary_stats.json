@@ -1,0 +1,18 @@
+{
+  "input_dir": "/Users/jacobtkaczyk/Downloads/SG-SLAM/profiling",
+  "output_dir": "/Users/jacobtkaczyk/Downloads/SG-SLAM/profiling/report_plots",
+  "frontend_rows": 4541,
+  "odometry_rows": 4541,
+  "mapping_rows": 87451681,
+  "stats": {
+    "frontend_avg_total_ms": 28.423311385157454,
+    "frontend_p95_total_ms": 48.4195,
+    "frontend_buildgraph_avg_ms": 0.2744817300154151,
+    "frontend_registration_avg_ms": 15.335620997797841,
+    "odom_avg_wall_ms": 48.766709469279895,
+    "odom_p95_wall_ms": 77.8291,
+    "mapping_avg_loop_ms": 2.269622520810395,
+    "mapping_p95_loop_ms": 15.118,
+    "frontend_odom_corr": 0.44346867905295095
+  }
+}

@@ -1,0 +1,44 @@
+===== nodes=64 =====
+buildgraph_benchmark_result
+nodes_per_frame=64
+timed_frames=300
+warmup_frames=30
+avg_ms=0.5913
+p50_ms=0.5757
+p95_ms=0.7001
+approx_fps=1691.3228
+last_graph_nodes=64
+last_graph_edges=948
+===== nodes=128 =====
+buildgraph_benchmark_result
+nodes_per_frame=128
+timed_frames=300
+warmup_frames=30
+avg_ms=3.5722
+p50_ms=3.5564
+p95_ms=3.9721
+approx_fps=279.9390
+last_graph_nodes=128
+last_graph_edges=3960
+===== nodes=256 =====
+buildgraph_benchmark_result
+nodes_per_frame=256
+timed_frames=300
+warmup_frames=30
+avg_ms=23.4759
+p50_ms=23.2980
+p95_ms=24.7660
+approx_fps=42.5969
+last_graph_nodes=256
+last_graph_edges=15162
+===== nodes=512 =====
+buildgraph_benchmark_result
+nodes_per_frame=512
+timed_frames=300
+warmup_frames=30
+avg_ms=174.4511
+p50_ms=172.9237
+p95_ms=188.0693
+approx_fps=5.7323
+last_graph_nodes=512
+last_graph_edges=61946

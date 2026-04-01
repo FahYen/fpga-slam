@@ -1,0 +1,48 @@
+# Ignore large data files and archives
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Ignore data directories
+data/
+
+# Dataset directories (user should download separately)
+dataset/
+datasets/
+
+# Build artifacts
+build/
+catkin_ws/build/
+catkin_ws/devel/
+catkin_ws/install/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor cache
+.cache/
+
+# ROS logs
+*.log
+logs/
+
+# Profiling artifacts
+profiling/*.csv
+**/slam_*profile.csv
+**/slam_*_profile.csv
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

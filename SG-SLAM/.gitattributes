@@ -1,0 +1,1 @@
+data/kitti/sequences/00/velodyne/*.bin filter=lfs diff=lfs merge=lfs -text
