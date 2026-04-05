@@ -2,3 +2,6 @@ data/
 .venv-rangenet/
 aws_runs/
 sgslam_runs/
+fpga/golden_vectors/
+fpga/weights/
+fpga/model_fused.onnx
