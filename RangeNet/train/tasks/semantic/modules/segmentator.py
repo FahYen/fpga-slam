@@ -24,27 +24,32 @@ class Segmentator(nn.Module):
                                   self.ARCH["backbone"]["name"] + '.py')
     self.backbone = bboneModule.Backbone(params=self.ARCH["backbone"])
 
-    # dummy tensor
+    # dummy zero tensor
     stub = torch.zeros((1,
                         self.backbone.get_input_depth(),
                         self.ARCH["dataset"]["sensor"]["img_prop"]["height"],
                         self.ARCH["dataset"]["sensor"]["img_prop"]["width"]))
 
+    # run on GPU
     if torch.cuda.is_available():
       stub = stub.cuda()
       self.backbone.cuda()
 
+    # run one forward pass with zero tensor
     _, stub_skips = self.backbone(stub)
 
+    # import decoder code
     decoderModule = imp.load_source("decoderModule",
                                     booger.TRAIN_PATH + '/tasks/semantic/decoders/' +
                                     self.ARCH["decoder"]["name"] + '.py')
 
+    # instantiate decoder
     self.decoder = decoderModule.Decoder(params=self.ARCH["decoder"],
                                          stub_skips=stub_skips,
                                          OS=self.ARCH["backbone"]["OS"],
                                          feature_depth=self.backbone.get_last_depth())
 
+    # instantiate classifier head
     self.head = nn.Sequential(nn.Dropout2d(p=ARCH["head"]["dropout"]),
                               nn.Conv2d(self.decoder.get_last_depth(),
                                         self.nclasses, kernel_size=3,
@@ -76,7 +81,6 @@ class Segmentator(nn.Module):
         w.requires_grad = False
 
     # print number of parameters and the ones requiring gradients
-    # print number of parameters and the ones requiring gradients
     weights_total = sum(p.numel() for p in self.parameters())
     weights_grad = sum(p.numel() for p in self.parameters() if p.requires_grad)
     print("Total number of parameters: ", weights_total)
@@ -95,7 +99,7 @@ class Segmentator(nn.Module):
 
     # get weights
     if path is not None:
-      # try backbone
+      # load pretrained backbone weights
       try:
         w_dict = torch.load(path + "/backbone" + path_append,
                             map_location=lambda storage, loc: storage)
@@ -108,7 +112,7 @@ class Segmentator(nn.Module):
           print("I'm in strict mode and failure to load weights blows me up :)")
           raise e
 
-      # try decoder
+      # load pretrained decoder weights
       try:
         w_dict = torch.load(path + "/segmentation_decoder" + path_append,
                             map_location=lambda storage, loc: storage)
@@ -120,7 +124,7 @@ class Segmentator(nn.Module):
           print("I'm in strict mode and failure to load weights blows me up :)")
           raise e
 
-      # try head
+      # load pretrained classifier head weights
       try:
         w_dict = torch.load(path + "/segmentation_head" + path_append,
                             map_location=lambda storage, loc: storage)
@@ -132,7 +136,7 @@ class Segmentator(nn.Module):
           print("I'm in strict mode and failure to load weights blows me up :)")
           raise e
 
-      # try CRF
+      # load pretrained CRF weight
       if self.CRF:
         try:
           w_dict = torch.load(path + "/segmentation_CRF" + path_append,

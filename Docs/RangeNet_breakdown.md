@@ -25,30 +25,27 @@ What they do:
 
 ## B) 2D Semantic Segmentation Network
 
-Primary folders:
-
-- `backbones/`
-- `tasks/semantic/decoders/`
-- `tasks/semantic/modules/`
-- `tasks/semantic/dataset/`
-- `tasks/semantic/config/arch/`
-
-What they do:
-
-- `backbones/darknet.py`: encoder. Key paper-aligned changes are implemented here:
-  - 5-channel input support (`range + x + y + z + remission`).
-  - Horizontal-only downsampling (`stride=[1, 2]`) to preserve vertical LiDAR resolution.
-  - Output-stride (`OS`) control and residual blocks for feature extraction.
-- `tasks/semantic/decoders/darknet.py`: decoder with horizontal upsampling (`ConvTranspose2d` with `kernel=[1,4]`, `stride=[1,2]`) and skip-add fusion from encoder stages.
-- `tasks/semantic/modules/segmentator.py`: assembles backbone + decoder + segmentation head, applies softmax, and handles checkpoint load/save.
-  - Current head is `Conv2d(..., kernel_size=3, padding=1)` after dropout.
-  - Note: paper text describes a final `[1x1]` projection; implementation here uses `3x3`.
-- `tasks/semantic/dataset/kitti/parser.py`: builds normalized 5-channel tensors consumed by the network (`proj = (proj - mean)/std`), so this is part of the effective network input contract.
-- `tasks/semantic/modules/trainer.py`: training-time objective and optimization details for this network block:
-  - class-frequency-weighted cross-entropy (`NLLLoss` over `log(softmax)` outputs),
-  - SGD optimizer and LR schedule.
-- `tasks/semantic/modules/user.py`: inference path (softmax -> argmax per pixel) and optional handoff to KNN post-processing.
-- `tasks/semantic/config/arch/*.yaml`: controls architecture and interface-critical parameters (enabled input channels, `OS`, dropout/BN, image width/height, normalization means/stds, optional post-processing flags).
+- `tasks/semantic/modules/segmentator.py`: 
+  - assembles backbone + decoder + segmentation head, applies softmax, and handles checkpoint load/save.
+    - Current head is `Conv2d(..., kernel_size=3, padding=1)` after dropout.
+    - Note: paper text describes a final `[1x1]` projection; implementation here uses `3x3`.
+- `backbones/darknet.py`: 
+  - encoder. Key paper-aligned changes are implemented here:
+    - 5-channel input support (`range + x + y + z + remission`).
+    - Horizontal-only downsampling (`stride=[1, 2]`) to preserve vertical LiDAR resolution.
+    - Output-stride (`OS`) control and residual blocks for feature extraction.
+- `tasks/semantic/decoders/darknet.py`: 
+  - decoder with horizontal upsampling (`ConvTranspose2d` with `kernel=[1,4]`, `stride=[1,2]`) and skip-add fusion from encoder stages.
+- `tasks/semantic/dataset/kitti/parser.py`: 
+  - builds normalized 5-channel tensors consumed by the network (`proj = (proj - mean)/std`), so this is part of the effective network input contract.
+- `tasks/semantic/modules/trainer.py`: 
+  - training-time objective and optimization details for this network block:
+    - class-frequency-weighted cross-entropy (`NLLLoss` over `log(softmax)` outputs),
+    - SGD optimizer and LR schedule.
+- `tasks/semantic/modules/user.py`: 
+  - inference path (softmax -> argmax per pixel) and optional handoff to KNN post-processing.
+- `tasks/semantic/config/arch/*.yaml`: 
+  - controls architecture and interface-critical parameters (enabled input channels, `OS`, dropout/BN, image width/height, normalization means/stds, optional post-processing flags).
 
 ## C) 2D -> 3D Semantic Transfer
 
