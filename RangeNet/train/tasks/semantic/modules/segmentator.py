@@ -24,7 +24,7 @@ class Segmentator(nn.Module):
                                   self.ARCH["backbone"]["name"] + '.py')
     self.backbone = bboneModule.Backbone(params=self.ARCH["backbone"])
 
-    # do a pass of the backbone to initialize the skip connections
+    # dummy tensor
     stub = torch.zeros((1,
                         self.backbone.get_input_depth(),
                         self.ARCH["dataset"]["sensor"]["img_prop"]["height"],
@@ -33,11 +33,13 @@ class Segmentator(nn.Module):
     if torch.cuda.is_available():
       stub = stub.cuda()
       self.backbone.cuda()
+
     _, stub_skips = self.backbone(stub)
 
     decoderModule = imp.load_source("decoderModule",
                                     booger.TRAIN_PATH + '/tasks/semantic/decoders/' +
                                     self.ARCH["decoder"]["name"] + '.py')
+
     self.decoder = decoderModule.Decoder(params=self.ARCH["decoder"],
                                          stub_skips=stub_skips,
                                          OS=self.ARCH["backbone"]["OS"],

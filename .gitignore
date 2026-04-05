@@ -1,1 +1,4 @@
 data/
+.venv-rangenet/
+aws_runs/
+sgslam_runs/

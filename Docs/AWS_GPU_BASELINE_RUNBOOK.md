@@ -7,7 +7,8 @@ This runbook gets you to a reproducible `RangeNet -> .label -> SG-SLAM` GPU base
 - Start with `g5.xlarge` for smoke tests and contract validation.
 - Use `g5.2xlarge` or larger if you want faster full-sequence export throughput.
 - Prefer an image that already has NVIDIA drivers and CUDA working. A Deep Learning AMI or a CUDA-ready Ubuntu image is the least risky choice.
-- Attach enough storage for datasets and artifacts. `200 GB` gp3 is a practical minimum if you will keep KITTI, MulRAN, model files, logs, and traces on the instance.
+- Attach enough gp3 for OS, Python env, models, your `data/` tree, and run outputs. If you only stage the KITTI sequences you need (not a full mirror), **`50–80 GB`** is usually sufficient.
+- A single `g5.xlarge` with an NVIDIA A10G was sufficient for a `700`-scan correctness run.
 
 ## What To Persist
 
@@ -19,6 +20,7 @@ Before the expensive run, capture searchable artifacts on disk:
 - exporter stdout/stderr log
 - `sgslam_contract_manifest.json`
 - `sgslam_export_trace.jsonl`
+- subset selection note if you intentionally stop at fewer than all scans
 
 These are your baseline receipts. Keep them with the generated `.label` files.
 
@@ -29,7 +31,6 @@ Use a stable layout so later FPGA comparisons are apples-to-apples:
 ```text
 /workspace/slam
 /workspace/data/kitti/sequences
-/workspace/data/mulran_in_kitti/sequences
 /workspace/models/rangenet_darknet53
 /workspace/runs/<timestamp>/
 ```
@@ -56,6 +57,20 @@ python -m pip install --upgrade pip wheel setuptools
 
 Install PyTorch with CUDA support using the current command from the official PyTorch selector, then install the remaining Python deps needed by `RangeNet`.
 
+For exporter-only work, a minimal environment is enough:
+
+```bash
+python -m pip install --upgrade pip wheel setuptools
+python -m pip install "numpy<1.24" PyYAML scipy
+python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
+```
+
+Notes:
+
+- `scipy` is required even when CRF is disabled because `tasks.semantic.postproc.CRF` is imported at startup.
+- Some GPU AMIs still do not ship with a ready-to-use Python environment for this repo, so expect to create your own venv.
+- Adjust the PyTorch CUDA wheel selector if you use a different driver or CUDA stack.
+
 Minimum verification:
 
 ```bash
@@ -72,6 +87,16 @@ If that does not report CUDA availability, stop there and fix the image or drive
 
 ## Model Directory
 
+Download the Bonn pretrained `darknet53` bundle and unpack it into the model directory:
+
+```bash
+mkdir -p /workspace/models
+curl -fL http://www.ipb.uni-bonn.de/html/projects/bonnetal/lidar/semantic/models/darknet53.tar.gz \
+  -o /workspace/models/darknet53.tar.gz
+tar -xzf /workspace/models/darknet53.tar.gz -C /workspace/models
+mv /workspace/models/darknet53 /workspace/models/rangenet_darknet53
+```
+
 The exporter expects:
 
 ```text
@@ -82,6 +107,8 @@ The exporter expects:
   segmentation_decoder
   segmentation_head
 ```
+
+These weights are loaded directly by `Segmentator`.
 
 If KNN post-processing is enabled in `arch_cfg.yaml`, the exporter will apply it automatically.
 
@@ -108,20 +135,45 @@ Run a short export first:
 cd /workspace/slam/RangeNet/train/tasks/semantic
 OMP_NUM_THREADS=1 python3 export_sgslam_labels.py \
   --scan-root /workspace/data/kitti/sequences \
-  --output-root /workspace/data/SegNet4D_predictions/kitti \
+  --output-root /workspace/data/rangenet_sgslam/kitti \
   --model /workspace/models/rangenet_darknet53 \
   --sequences 00 \
   --scan-subdir velodyne \
   --label-subdir predictions \
   --max-scans-per-sequence 10 \
+  --device cuda \
   2>&1 | tee "$RUN_DIR/kitti-smoke.log"
 ```
 
 Quick checks:
 
-- verify `.label` files appear under `/workspace/data/SegNet4D_predictions/kitti/00/predictions/`
+- verify `.label` files appear under `/workspace/data/rangenet_sgslam/kitti/00/predictions/`
 - verify `sgslam_contract_manifest.json` and `sgslam_export_trace.jsonl` were written
 - verify the number of bytes in each `.label` file is `4 * number_of_points`
+
+Important:
+
+- `export_sgslam_labels.py` writes `RangeNet` predictions, not dataset ground-truth labels.
+
+## Correctness Subset
+
+For FPGA correctness checks, keep the export bounded and deterministic instead of paying for the full sequence:
+
+```bash
+cd /workspace/slam/RangeNet/train/tasks/semantic
+OMP_NUM_THREADS=1 python3 export_sgslam_labels.py \
+  --scan-root /workspace/data/kitti/sequences \
+  --output-root /workspace/data/rangenet_sgslam_700/kitti \
+  --model /workspace/models/rangenet_darknet53 \
+  --sequences 00 \
+  --scan-subdir velodyne \
+  --label-subdir predictions \
+  --max-scans-per-sequence 700 \
+  --device cuda \
+  2>&1 | tee "$RUN_DIR/kitti-700.log"
+```
+
+This deterministically yields `000000.label` through `000699.label` under `/workspace/data/rangenet_sgslam_700/kitti/00/predictions/`.
 
 ## Full KITTI Baseline
 
@@ -131,40 +183,19 @@ Once the smoke test passes:
 cd /workspace/slam/RangeNet/train/tasks/semantic
 OMP_NUM_THREADS=1 python3 export_sgslam_labels.py \
   --scan-root /workspace/data/kitti/sequences \
-  --output-root /workspace/data/SegNet4D_predictions/kitti \
+  --output-root /workspace/data/rangenet_sgslam/kitti \
   --model /workspace/models/rangenet_darknet53 \
   --sequences 00 \
   --scan-subdir velodyne \
   --label-subdir predictions \
+  --device cuda \
   2>&1 | tee "$RUN_DIR/kitti-full.log"
 ```
 
 Then point `SG-SLAM` at:
 
 ```text
-/workspace/data/SegNet4D_predictions/kitti/00/predictions/
-```
-
-## MulRAN Baseline
-
-For the existing SG-SLAM MulRAN layout:
-
-```bash
-cd /workspace/slam/RangeNet/train/tasks/semantic
-OMP_NUM_THREADS=1 python3 export_sgslam_labels.py \
-  --scan-root /workspace/data/mulran_in_kitti/sequences \
-  --output-root /workspace/data/mulran_in_kitti/sequences \
-  --model /workspace/models/rangenet_darknet53 \
-  --sequences 00 \
-  --scan-subdir Ouster \
-  --label-subdir segnet4d \
-  2>&1 | tee "$RUN_DIR/mulran-full.log"
-```
-
-Then point `SG-SLAM` at:
-
-```text
-/workspace/data/mulran_in_kitti/sequences/00/segnet4d/
+/workspace/data/rangenet_sgslam/kitti/00/predictions/
 ```
 
 ## SG-SLAM Integration Check
@@ -186,7 +217,8 @@ Keep these together:
 - exported `.label` directories
 - `sgslam_contract_manifest.json`
 - `sgslam_export_trace.jsonl`
-- `kitti-smoke.log`, `kitti-full.log`, `mulran-full.log`
+- if you use a bounded subset, record the exact subset size and basename range
+- `kitti-smoke.log`, `kitti-full.log`
 - `nvidia-smi.txt`
 - `pip-freeze.txt`
 - exact model directory used
