@@ -14,6 +14,8 @@
   <arg name="pipeline_profile_out" default="$(find semgraph_slam)/../profiling/slam_frontend_profile.csv"/>
   <arg name="odom_profile_out" default="$(find semgraph_slam)/../profiling/slam_odometry_profile.csv"/>
   <arg name="mapping_profile_out" default="$(find semgraph_slam)/../profiling/slam_mapping_profile.csv"/>
+  <arg name="registration_backend" default="cpu"/>
+  <arg name="registration_xclbin" default=""/>
 
   <!-- KISS-ICP paramaters -->
   <arg name="deskew" default="false"/>
@@ -30,6 +32,8 @@
     <env name="SGSLAM_PIPELINE_PROFILE_OUT" value="$(arg pipeline_profile_out)"/>
     <env name="SGSLAM_ODOM_PROFILE_OUT" value="$(arg odom_profile_out)"/>
     <env name="SGSLAM_MAPPING_PROFILE_OUT" value="$(arg mapping_profile_out)"/>
+    <env name="SGSLAM_REG_BACKEND" value="$(arg registration_backend)"/>
+    <env name="SGSLAM_REG_XCLBIN" value="$(arg registration_xclbin)"/>
 
     <param name="dataset" value="$(arg dataset)"/>
     <!-- ROS params -->

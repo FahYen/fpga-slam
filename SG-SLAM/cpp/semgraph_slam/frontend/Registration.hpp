@@ -11,6 +11,7 @@
 #include <sophus/se3.hpp>
 #include <vector>
 #include <unordered_map>
+#include <string>
 
 #include "VoxelHashMap.hpp"
 #include "semgraph_slam/core/Coreutils.h"
@@ -59,9 +60,25 @@ std::unordered_map<int, double> weights_semantic={
 
 namespace graph_slam {
 
+enum class RegistrationBackend {
+  kCpu,
+  kFpga,
+};
+
+RegistrationBackend ParseRegistrationBackend(const std::string &backend);
+const char *RegistrationBackendName(RegistrationBackend backend);
+RegistrationBackend GetRegistrationBackendFromEnv();
+
 Sophus::SE3d RegisterFrameSemantic(const std::vector<Eigen::Vector4d> &frame,
                            const VoxelHashMap &voxel_map,
                            const Sophus::SE3d &initial_guess,
                            double max_correspondence_distance,
                            double kernel);
+
+Sophus::SE3d RegisterFrameSemanticWithBackend(const std::vector<Eigen::Vector4d> &frame,
+                        const VoxelHashMap &voxel_map,
+                        const Sophus::SE3d &initial_guess,
+                        double max_correspondence_distance,
+                        double kernel,
+                        RegistrationBackend backend);
 }   // namespace graph_slam

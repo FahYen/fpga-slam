@@ -211,3 +211,59 @@ std::vector<float> load_bin(const std::string& path, size_t num_elements) {
 1. `sw_emu` — fast iteration, verify correctness against golden vectors
 2. `hw_emu` — cycle-accurate, verify timing/throughput
 3. `hw` — full synthesis, deploy on F1
+
+---
+
+## Can I run Vivado/Vitis on AWS?
+
+Yes. This is the recommended path.
+
+- Use the **FPGA Developer AMI** on a Linux x86-64 EC2 instance.
+- For most iterations use `c5.4xlarge` (synthesis/emulation on CPU).
+- Use `f1.2xlarge` when you need FPGA hardware execution and AFI validation.
+
+Toolchain check on AWS host:
+
+```bash
+source vitis_setup.sh
+which v++
+which vitis_hls
+which vivado
+```
+
+## Registration Kernel API Endpoints
+
+This repo now includes a lightweight API service for sending and receiving registration kernel payloads:
+
+- `GET /healthz`
+- `GET /v1/registration/limits`
+- `POST /v1/registration/accumulate`
+
+Run on AWS instance:
+
+```bash
+cd /path/to/fpga-slam/fpga/api
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn registration_api:app --host 0.0.0.0 --port 8080
+```
+
+Example request:
+
+```bash
+curl -sS http://127.0.0.1:8080/v1/registration/accumulate \
+    -H 'content-type: application/json' \
+    -d '{
+        "backend": "cpu-proto",
+        "kernel": 0.333333,
+        "correspondence_count": 2,
+        "src_xyz": [1.0,2.0,3.0, 2.0,3.0,4.0],
+        "tgt_xyz": [1.1,2.0,3.0, 1.9,3.1,4.0],
+        "labels": [18, 9]
+    }'
+```
+
+Security note:
+- Keep port `8080` private when possible.
+- If public ingress is needed, restrict security-group source IPs and place TLS in front of the API.

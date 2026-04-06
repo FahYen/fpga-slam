@@ -7,13 +7,17 @@
 // contact: Neng Wang, <neng.wang@hotmail.com>
 
 #include "Registration.hpp"
+#include "semgraph_slam/hls/registration_kernel_draft.hpp"
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_reduce.h>
 #include <tbb/parallel_for.h>
 
 #include <algorithm>
+#include <array>
+#include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
 #include <tuple>
@@ -112,12 +116,133 @@ Sophus::SE3d AlignClouds(const std::vector<Eigen::Vector4d> &source4d,
     return Sophus::SE3d::exp(x);  
 }
 
+struct FpgaAlignResult {
+    Sophus::SE3d estimation;
+    int dropped_correspondences = 0;
+};
+
+FpgaAlignResult AlignCloudsFpgaPrototype(const std::vector<Eigen::Vector4d> &source4d,
+                                         const std::vector<Eigen::Vector4d> &target4d,
+                                         double th) {
+    constexpr int kMaxCorrespondences = graph_slam_hls_draft::MAX_REG_CORRESPONDENCES;
+    const int requested = static_cast<int>(std::min(source4d.size(), target4d.size()));
+    if (requested <= 0) return {Sophus::SE3d(), 0};
+
+    std::array<float, kMaxCorrespondences * 3> src_xyz{};
+    std::array<float, kMaxCorrespondences * 3> tgt_xyz{};
+    std::array<int, kMaxCorrespondences> labels{};
+
+    const int bounded = std::min(requested, kMaxCorrespondences);
+    for (int i = 0; i < bounded; ++i) {
+        const int base = i * 3;
+        src_xyz[base + 0] = static_cast<float>(source4d[i](0));
+        src_xyz[base + 1] = static_cast<float>(source4d[i](1));
+        src_xyz[base + 2] = static_cast<float>(source4d[i](2));
+
+        tgt_xyz[base + 0] = static_cast<float>(target4d[i](0));
+        tgt_xyz[base + 1] = static_cast<float>(target4d[i](1));
+        tgt_xyz[base + 2] = static_cast<float>(target4d[i](2));
+
+        labels[i] = static_cast<int>(source4d[i](3));
+    }
+
+    double jtj_out[36];
+    double jtr_out[6];
+    int used_count = 0;
+    int dropped_count = 0;
+
+    graph_slam_hls_draft::registration_accumulate_kernel(src_xyz.data(),
+                                                          tgt_xyz.data(),
+                                                          labels.data(),
+                                                          requested,
+                                                          static_cast<float>(th),
+                                                          jtj_out,
+                                                          jtr_out,
+                                                          &used_count,
+                                                          &dropped_count);
+
+    if (used_count <= 0) return {Sophus::SE3d(), dropped_count};
+
+    Eigen::Matrix6d JTJ;
+    Eigen::Vector6d JTr;
+    for (int r = 0; r < 6; ++r) {
+        JTr(r) = jtr_out[r];
+        for (int c = 0; c < 6; ++c) {
+            JTJ(r, c) = jtj_out[r * 6 + c];
+        }
+    }
+
+    const Eigen::Vector6d x = JTJ.ldlt().solve(-JTr);
+    if (!x.allFinite()) return {Sophus::SE3d(), dropped_count};
+
+    return {Sophus::SE3d::exp(x), dropped_count};
+}
+
 constexpr int MAX_NUM_ITERATIONS_ = 500;
 constexpr double ESTIMATION_THRESHOLD_ = 0.0001;
+
+Sophus::SE3d RegisterFrameSemanticFpgaPrototype(const std::vector<Eigen::Vector4d> &frame,
+                                                const graph_slam::VoxelHashMap &voxel_map,
+                                                const Sophus::SE3d &initial_guess,
+                                                double max_correspondence_distance,
+                                                double kernel) {
+    if (voxel_map.Empty()) return initial_guess;
+
+    std::vector<Eigen::Vector4d> source = frame;
+    TransformPoints4D(initial_guess, source);
+
+    Sophus::SE3d T_icp = Sophus::SE3d();
+    for (int j = 0; j < MAX_NUM_ITERATIONS_; ++j) {
+        const auto &[src, tgt] = voxel_map.GetCorrespondences(source, max_correspondence_distance);
+        const FpgaAlignResult align_result = AlignCloudsFpgaPrototype(src, tgt, kernel);
+        const Sophus::SE3d &estimation = align_result.estimation;
+
+        static bool warned_truncation_once = false;
+        if (align_result.dropped_correspondences > 0 && !warned_truncation_once) {
+            std::cerr << "[ Registration ][fpga-proto] correspondence count exceeded fixed kernel buffer; "
+                      << "truncating " << align_result.dropped_correspondences
+                      << " correspondences per iteration at most." << std::endl;
+            warned_truncation_once = true;
+        }
+
+        TransformPoints4D(estimation, source);
+        T_icp = estimation * T_icp;
+
+        if (estimation.log().norm() < ESTIMATION_THRESHOLD_) {
+            break;
+        }
+    }
+
+    return T_icp * initial_guess;
+}
 
 }  // namespace
 
 namespace graph_slam {
+
+RegistrationBackend ParseRegistrationBackend(const std::string &backend) {
+    std::string normalized = backend;
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (normalized == "fpga") return RegistrationBackend::kFpga;
+    return RegistrationBackend::kCpu;
+}
+
+const char *RegistrationBackendName(RegistrationBackend backend) {
+    switch (backend) {
+        case RegistrationBackend::kFpga:
+            return "fpga";
+        case RegistrationBackend::kCpu:
+        default:
+            return "cpu";
+    }
+}
+
+RegistrationBackend GetRegistrationBackendFromEnv() {
+    const char *backend_env = std::getenv("SGSLAM_REG_BACKEND");
+    if (backend_env == nullptr) return RegistrationBackend::kCpu;
+    return ParseRegistrationBackend(backend_env);
+}
 
 
 void writePointCloud(const std::vector<Eigen::Vector4d>& points, const std::string& filename){
@@ -174,6 +299,26 @@ Sophus::SE3d RegisterFrameSemantic(const std::vector<Eigen::Vector4d> &frame,
     
     // Spit the final transformation
     return T_icp * initial_guess;
+}
+
+Sophus::SE3d RegisterFrameSemanticWithBackend(const std::vector<Eigen::Vector4d> &frame,
+                                              const VoxelHashMap &voxel_map,
+                                              const Sophus::SE3d &initial_guess,
+                                              double max_correspondence_distance,
+                                              double kernel,
+                                              RegistrationBackend backend) {
+    switch (backend) {
+        case RegistrationBackend::kCpu:
+            return RegisterFrameSemantic(frame, voxel_map, initial_guess, max_correspondence_distance, kernel);
+        case RegistrationBackend::kFpga:
+            return RegisterFrameSemanticFpgaPrototype(frame,
+                                                      voxel_map,
+                                                      initial_guess,
+                                                      max_correspondence_distance,
+                                                      kernel);
+        default:
+            return RegisterFrameSemantic(frame, voxel_map, initial_guess, max_correspondence_distance, kernel);
+    }
 }
 
 }   // namespace graph_slam

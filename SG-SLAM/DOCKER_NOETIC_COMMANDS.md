@@ -53,6 +53,47 @@ catkin build --no-status -j2 -p1 semgraph_slam
 source devel/setup.bash
 ```
 
+Note: this default path keeps `ENABLE_MILESTONE1_BENCHMARKS=OFF` from the image config.
+
+## 5.1) Enable and run benchmark targets (BuildGraph + Registration)
+
+If you want benchmark executables (`benchmark_buildgraph`, `benchmark_registration`), reconfigure catkin once per workspace with benchmarks enabled:
+
+```bash
+source /opt/ros/noetic/setup.bash
+cd /opt/catkin_ws
+catkin config --cmake-args \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DUSE_SYSTEM_EIGEN3=ON \
+  -DUSE_SYSTEM_TBB=ON \
+  -DENABLE_MILESTONE1_BENCHMARKS=ON
+catkin build --no-status -j2 -p1 semgraph_slam
+source devel/setup.bash
+```
+
+Run the registration benchmark (CPU backend baseline):
+
+```bash
+REG_BENCH_BIN="$(find build devel -type f -name benchmark_registration | head -n 1)"
+"$REG_BENCH_BIN" --backend cpu --frames 300 --warmup 30 --seed 570 \
+  --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0
+```
+
+Run the registration benchmark in FPGA prototype mode (bounded HLS-style accumulation path):
+
+```bash
+"$REG_BENCH_BIN" --backend fpga --frames 300 --warmup 30 --seed 570 \
+  --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0
+```
+
+Run the existing BuildGraph benchmark:
+
+```bash
+BENCH_BIN="$(find build devel -type f -name benchmark_buildgraph | head -n 1)"
+"$BENCH_BIN" --nodes 256 --frames 300 --warmup 30 --seed 570 \
+  --edge-th 40 --subinterval 40 --node-dim 8 --subgraph-edge-th 20
+```
+
 You do not need to rebuild the Docker image for ordinary source edits, because the repo is bind-mounted into the container.
 
 ## 6) Launch SG-SLAM
