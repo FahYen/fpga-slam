@@ -159,7 +159,8 @@ public:
                 std::size_t cluster_boxes,
                 std::size_t graph_nodes,
                 std::size_t graph_edges,
-                const FrontendStageTimes &times) {
+                const FrontendStageTimes &times,
+                const char *registration_backend) {
         if (!enabled_) return;
         if (!dataset_filter_.empty() && dataset != dataset_filter_) return;
 
@@ -205,7 +206,8 @@ public:
               << (100.0 * times.model_update_ms / denom) << ','
               << (100.0 * times.local_map_update_ms / denom) << ','
               << (100.0 * times.local_graph_update_ms / denom) << ','
-              << (100.0 * times.push_pose_ms / denom) << '\n';
+              << (100.0 * times.push_pose_ms / denom) << ','
+              << registration_backend << '\n';
 
         samples_++;
         total_ms_sum_ += times.total_ms;
@@ -279,7 +281,7 @@ private:
               << "model_update_ms,local_map_update_ms,local_graph_update_ms,push_pose_ms,total_ms,"
               << "deskew_pct,kitti_correct_pct,preprocess_pct,voxelize_pct,cluster_pct,buildgraph_pct,"
               << "find_match_pct,threshold_pct,prediction_pct,fuse_pct,registration_pct,relocalization_pct,"
-              << "model_update_pct,local_map_update_pct,local_graph_update_pct,push_pose_pct\n";
+              << "model_update_pct,local_map_update_pct,local_graph_update_pct,push_pose_pct,registration_backend\n";
         file_.flush();
 
         std::cout << "[ FrontendProfile ] enabled, writing to " << output_path_;
@@ -324,6 +326,8 @@ SemGraphSLAM::V3d_i_pair_graph SemGraphSLAM::mainProcess(const V3d &frame, const
     // against stable software baselines.
 
     FrontendStageTimes stage_times;
+    const RegistrationBackend registration_backend = GetRegistrationBackendFromEnv();
+    const char *registration_backend_name = RegistrationBackendName(registration_backend);
     const auto total_t0 = std::chrono::steady_clock::now();
 
     V3d deskew_frame = frame;
@@ -419,11 +423,12 @@ SemGraphSLAM::V3d_i_pair_graph SemGraphSLAM::mainProcess(const V3d &frame, const
 
     // Registration
     const auto registration_t0 = std::chrono::steady_clock::now();
-    Sophus::SE3d new_pose = RegisterFrameSemantic(source_4d,         // the current point cloud
-                                                          local_map_,     // the local pc map
-                                                          initial_guess,  // initial guess
-                                                          3.0 * sigma,    // max_correspondence_distance
-                                                          sigma / 3.0);   // kernel
+    Sophus::SE3d new_pose = RegisterFrameSemanticWithBackend(source_4d,         // the current point cloud
+                                                             local_map_,        // the local pc map
+                                                             initial_guess,     // initial guess
+                                                             3.0 * sigma,       // max_correspondence_distance
+                                                             sigma / 3.0,       // kernel
+                                                             registration_backend);
     const auto registration_t1 = std::chrono::steady_clock::now();
     stage_times.registration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(registration_t1 - registration_t0).count();
 
@@ -444,11 +449,12 @@ SemGraphSLAM::V3d_i_pair_graph SemGraphSLAM::mainProcess(const V3d &frame, const
             std::cout<<YELLOW<<"[ Relo. ] estimate_poses_flag:"<<estimate_poses_flag<<std::endl;
             if(estimate_poses_flag){ // successful relocalization
                 // Regisration with relocalized poses
-                new_pose = RegisterFrameSemantic(source_4d,         //
-                                                    local_map_,     //
-                                                    initial_guess_graph,  // the relocalized poses
-                                                    3.0 * sigma,    //
-                                                    sigma / 3.0);
+                new_pose = RegisterFrameSemanticWithBackend(source_4d,          //
+                                                            local_map_,          //
+                                                            initial_guess_graph, // the relocalized poses
+                                                            3.0 * sigma,         //
+                                                            sigma / 3.0,
+                                                            registration_backend);
                 model_deviation = Sophus::SE3d();
                 relocalization_corr = local_graph_map_.relo_corr;
             }
@@ -493,7 +499,8 @@ SemGraphSLAM::V3d_i_pair_graph SemGraphSLAM::mainProcess(const V3d &frame, const
                                               cluster_box.size(),
                                               graph.node_labels.size(),
                                               graph.edges.size(),
-                                              stage_times);
+                                              stage_times,
+                                              registration_backend_name);
 
     return {frame_downsample_cluster, source, graph};
 }

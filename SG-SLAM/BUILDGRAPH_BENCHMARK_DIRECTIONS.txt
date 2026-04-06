@@ -430,3 +430,46 @@ Issue: benchmark seems very slow
 Issue: benchmark numbers vary a lot run-to-run
 - Cause: system load variability and thermal conditions.
 - Fix: increase frames, run multiple repeats, and compare medians/p95.
+
+====================================================================
+H) Registration micro-benchmark (CPU baseline, backend-ready interface)
+====================================================================
+
+This benchmark runs the registration path in isolation with deterministic synthetic inputs.
+It is intended as the first A/B harness before FPGA offload.
+
+Prerequisite: benchmark targets enabled in catkin config
+Command:
+  cd ~/catkin_ws
+  source /opt/ros/noetic/setup.bash
+  catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release -DENABLE_MILESTONE1_BENCHMARKS=ON
+  catkin build semgraph_slam
+  source devel/setup.bash
+
+1) Locate benchmark binary
+Command:
+  REG_BENCH_BIN="$(find build devel -type f -name benchmark_registration | head -n 1)"
+  echo "$REG_BENCH_BIN"
+
+2) Run single CPU benchmark
+Command:
+  "$REG_BENCH_BIN" --backend cpu --frames 300 --warmup 30 --seed 570 \
+    --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0
+
+3) Run three repeats and save logs
+Command:
+  mkdir -p bench_results/registration_cpu
+  for R in 1 2 3; do
+    "$REG_BENCH_BIN" --backend cpu --frames 300 --warmup 30 --seed 570 \
+      --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0 \
+      | tee "bench_results/registration_cpu/run_${R}.txt"
+  done
+
+Output fields include:
+- avg_ms, p50_ms, p95_ms, approx_fps
+- avg_translation_error_m, avg_rotation_error_rad
+- max_translation_error_m, max_rotation_error_rad
+
+Notes:
+- `--backend fpga` now executes a bounded FPGA-prototype path (HLS-style accumulation kernel + CPU solve/integration).
+- `--max-iters` is currently informational; registration loop bound remains fixed in implementation.
