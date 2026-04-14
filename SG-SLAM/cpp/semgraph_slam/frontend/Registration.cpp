@@ -7,6 +7,7 @@
 // contact: Neng Wang, <neng.wang@hotmail.com>
 
 #include "Registration.hpp"
+#include "RegistrationXrtAdapter.hpp"
 #include "semgraph_slam/hls/registration_kernel_draft.hpp"
 
 #include <tbb/blocked_range.h>
@@ -20,6 +21,7 @@
 #include <cstdlib>
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
+#include <string>
 #include <tuple>
 #include <chrono>
 #include <iostream>
@@ -144,6 +146,58 @@ FpgaAlignResult AlignCloudsFpgaPrototype(const std::vector<Eigen::Vector4d> &sou
         tgt_xyz[base + 2] = static_cast<float>(target4d[i](2));
 
         labels[i] = static_cast<int>(source4d[i](3));
+    }
+
+    const char *xclbin_env = std::getenv("SGSLAM_REG_XCLBIN");
+    if (xclbin_env != nullptr && xclbin_env[0] != '\0') {
+        auto &xrt_adapter = graph_slam::RegistrationXrtAdapter::Instance();
+        std::string error_message;
+        static bool warned_config_once = false;
+        static bool warned_runtime_once = false;
+
+        if (xrt_adapter.Configure(xclbin_env, &error_message)) {
+            std::array<double, 36> xrt_jtj{};
+            std::array<double, 6> xrt_jtr{};
+            int used_count = 0;
+            int dropped_count = 0;
+
+            if (xrt_adapter.Accumulate(src_xyz.data(),
+                                       tgt_xyz.data(),
+                                       labels.data(),
+                                       requested,
+                                       static_cast<float>(th),
+                                       xrt_jtj,
+                                       xrt_jtr,
+                                       used_count,
+                                       dropped_count,
+                                       &error_message)) {
+                if (used_count <= 0) return {Sophus::SE3d(), dropped_count};
+
+                Eigen::Matrix6d JTJ;
+                Eigen::Vector6d JTr;
+                for (int r = 0; r < 6; ++r) {
+                    JTr(r) = xrt_jtr[r];
+                    for (int c = 0; c < 6; ++c) {
+                        JTJ(r, c) = xrt_jtj[r * 6 + c];
+                    }
+                }
+
+                const Eigen::Vector6d x = JTJ.ldlt().solve(-JTr);
+                if (!x.allFinite()) return {Sophus::SE3d(), dropped_count};
+
+                return {Sophus::SE3d::exp(x), dropped_count};
+            }
+
+            if (!warned_runtime_once) {
+                std::cerr << "[ Registration ][xrt] kernel invocation failed. Falling back to fpga-proto path: "
+                          << error_message << std::endl;
+                warned_runtime_once = true;
+            }
+        } else if (!warned_config_once) {
+            std::cerr << "[ Registration ][xrt] adapter not configured. Falling back to fpga-proto path: "
+                      << error_message << std::endl;
+            warned_config_once = true;
+        }
     }
 
     double jtj_out[36];

@@ -30,6 +30,7 @@ option(USE_SYSTEM_SOPHUS "Use system pre-installed Sophus" OFF)
 option(USE_SYSTEM_TSLMAP "Use system pre-installed tsl_robin" OFF)
 option(USE_SYSTEM_TBB "Use system pre-installed oneAPI/tbb" ON)
 option(USE_SYSTEM_CERES "Use system pre-installed Ceres" OFF)
+option(ENABLE_XRT_REGISTRATION "Enable XRT host adapter for registration kernel execution" OFF)
 
 # Set build type (repeat here for C++ only consumers)
 set(CMAKE_BUILD_TYPE Release)
