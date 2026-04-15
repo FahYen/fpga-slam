@@ -61,6 +61,10 @@ sys.path.insert(0, str(RANGENET_TRAIN / "tasks" / "semantic"))
 from common.laserscan import LaserScan
 from tasks.semantic.modules.segmentator import Segmentator
 
+# Fix RangeNet's relative TRAIN_PATH to absolute
+import tasks.semantic as booger
+booger.TRAIN_PATH = str(RANGENET_TRAIN)
+
 
 # ---------------------------------------------------------------------------
 # Quantizer-friendly wrapper
