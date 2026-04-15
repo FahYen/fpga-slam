@@ -162,7 +162,8 @@ def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
         proj = (proj - img_means[:, None, None]) / img_stds[:, None, None]
         proj = proj * proj_mask
 
-        tensors.append(proj.unsqueeze(0))  # [1, 5, H, W]
+        # FIX: Also return the projection mask so we can filter out empty space during accuracy evaluation
+        tensors.append((proj.unsqueeze(0), proj_mask.unsqueeze(0))) 
 
     return tensors
 
@@ -237,10 +238,10 @@ def main():
     # ------------------------------------------------------------------
     # Create dummy input for quantizer graph tracing
     # ------------------------------------------------------------------
-    H = sensor_cfg["img_prop"]["height"]
-    W = sensor_cfg["img_prop"]["width"]
-    input_depth = segmentator.backbone.get_input_depth()
-    dummy_input = torch.randn(1, input_depth, H, W).to(device)
+    # FIX: Use a real LiDAR frame to initialize the quantizer instead of random noise, 
+    # which prevents skewed node bindings/activation scales during tracing
+    dummy_scan = build_calibration_tensors(scan_paths, sensor_cfg, 1)[0][0]
+    dummy_input = dummy_scan.clone().to(device)
 
     # ------------------------------------------------------------------
     # Import Vitis AI quantizer
@@ -282,7 +283,8 @@ def main():
         print("\nRunning calibration ...")
         quant_model.eval()
         with torch.no_grad():
-            for i, x in enumerate(calib_tensors):
+            # FIX: Unpack the tuple to get just the tensor (ignoring the mask for calibration passes)
+            for i, (x, _) in enumerate(calib_tensors):
                 x = x.to(device)
                 _ = quant_model(x)
                 if (i + 1) % 50 == 0 or (i + 1) == len(calib_tensors):
@@ -302,18 +304,22 @@ def main():
         # Also run FP32 for comparison
         print("Running FP32 baseline ...")
         fp32_preds = []
+        masks = [] # FIX: List to store masks for evaluation
         model.eval()
         with torch.no_grad():
-            for x in test_tensors:
+            # FIX: Unpack the tuple to get both tensor and mask
+            for x, mask in test_tensors:
                 x = x.to(device)
                 logits = model(x)
                 fp32_preds.append(logits.argmax(dim=1).cpu().numpy())
+                masks.append(mask.cpu().numpy().astype(bool)) # FIX: Save boolean mask
 
         print("Running INT8 quantized ...")
         int8_preds = []
         quant_model.eval()
         with torch.no_grad():
-            for x in test_tensors:
+            # FIX: Unpack the tuple
+            for x, _ in test_tensors:
                 x = x.to(device)
                 logits = quant_model(x)
                 int8_preds.append(logits.argmax(dim=1).cpu().numpy())
@@ -321,9 +327,12 @@ def main():
         # Compare
         total_pixels = 0
         total_mismatch = 0
-        for fp32_p, int8_p in zip(fp32_preds, int8_preds):
-            total_pixels += fp32_p.size
-            total_mismatch += int(np.sum(fp32_p != int8_p))
+        # FIX: Iterate with masks to filter out invalid pixels in the projected LiDAR frame
+        for fp32_p, int8_p, mask in zip(fp32_preds, int8_preds, masks):
+            fp32_valid = fp32_p[mask]
+            int8_valid = int8_p[mask]
+            total_pixels += fp32_valid.size
+            total_mismatch += int(np.sum(fp32_valid != int8_valid))
 
         mismatch_pct = 100.0 * total_mismatch / max(total_pixels, 1)
         print(f"\n=== INT8 vs FP32 Accuracy ===")
