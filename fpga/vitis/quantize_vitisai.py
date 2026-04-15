@@ -61,9 +61,14 @@ sys.path.insert(0, str(RANGENET_TRAIN / "tasks" / "semantic"))
 from common.laserscan import LaserScan
 from tasks.semantic.modules.segmentator import Segmentator
 
-# Fix RangeNet's relative TRAIN_PATH to absolute
-import tasks.semantic as booger
-booger.TRAIN_PATH = str(RANGENET_TRAIN)
+# Fix RangeNet's relative TRAIN_PATH to absolute.
+# segmentator.py does `import __init__ as booger`, so we must patch
+# the cached `__init__` module in sys.modules, not just `tasks.semantic`.
+_train_path_abs = str(RANGENET_TRAIN)
+for _mod_key in list(sys.modules.keys()):
+    mod = sys.modules[_mod_key]
+    if hasattr(mod, 'TRAIN_PATH'):
+        mod.TRAIN_PATH = _train_path_abs
 
 
 # ---------------------------------------------------------------------------
