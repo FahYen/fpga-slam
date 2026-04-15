@@ -1,0 +1,49 @@
+{
+  "0": {
+    "basicblocks": 81,
+    "calls": "3 1 1 2",
+    "file": "registration_kernel_draft.cpp",
+    "fileloc": 26,
+    "instructions": 973,
+    "loads": {
+      "L": 192,
+      "T": 7
+    },
+    "name": "registration_accumulate_kernel",
+    "stores": {
+      "L": 77,
+      "T": 5
+    },
+    "total_instructions": 991
+  },
+  "1": {
+    "basicblocks": 1,
+    "calls": "",
+    "file": "registration_kernel_draft.cpp",
+    "fileloc": 14,
+    "instructions": 2,
+    "name": "sqr",
+    "total_instructions": 2
+  },
+  "2": {
+    "basicblocks": 5,
+    "calls": "",
+    "file": "registration_kernel_draft.cpp",
+    "fileloc": 16,
+    "instructions": 6,
+    "name": "SemanticWeight",
+    "total_instructions": 6
+  },
+  "3": {
+    "basicblocks": 4,
+    "calls": "",
+    "file": "stl_algobase.h",
+    "fileloc": 195,
+    "instructions": 8,
+    "loads": {
+      "L": 2
+    },
+    "name": "min<int>",
+    "total_instructions": 8
+  }
+}

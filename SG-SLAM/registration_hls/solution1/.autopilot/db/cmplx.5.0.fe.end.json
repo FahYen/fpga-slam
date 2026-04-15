@@ -1,0 +1,74 @@
+{
+    "0": {
+        "name": "registration_accumulate_kernel",
+        "file": "registration_kernel_draft.cpp",
+        "fileloc": "26",
+        "instructions": "181",
+        "total_instructions": "655",
+        "calls": "2 3 1",
+        "basicblocks": "4",
+        "loads": {
+            "L": "30"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "1": {
+        "name": "registration_accumulate_kernel_Pipeline_VITIS_LOOP_151_11",
+        "file": "cpp\/semgraph_slam\/hls\/registration_kernel_draft.cpp",
+        "fileloc": "151",
+        "instructions": "27",
+        "total_instructions": "27",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "2": {
+        "name": "registration_accumulate_kernel_Pipeline_VITIS_LOOP_70_3",
+        "file": "cpp\/semgraph_slam\/hls\/registration_kernel_draft.cpp",
+        "fileloc": "70",
+        "instructions": "367",
+        "total_instructions": "367",
+        "calls": "",
+        "basicblocks": "7",
+        "loads": {
+            "L": "55"
+        },
+        "stores": {
+            "L": "56"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "3": {
+        "name": "registration_accumulate_kernel_Pipeline_VITIS_LOOP_141_10",
+        "file": "cpp\/semgraph_slam\/hls\/registration_kernel_draft.cpp",
+        "fileloc": "139",
+        "instructions": "80",
+        "total_instructions": "80",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "2"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    }
+}

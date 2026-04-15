@@ -1,0 +1,103 @@
+---
+MainSourceFile:  /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+Diagnostics:     
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_58_1:  '
+    FileOffset:      58
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          480680
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_58_1: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_59_2:  '
+    FileOffset:      59
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          480875
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_59_2: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_70_3:  '
+    FileOffset:      70
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          481413
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_70_3: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_111_4:  '
+    FileOffset:      111
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          482665
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_111_4: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_114_5:  '
+    FileOffset:      114
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          482749
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_114_5: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_123_6:  '
+    FileOffset:      123
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          482927
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_123_6: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_125_7:  '
+    FileOffset:      125
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          482980
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_125_7: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_128_8:  '
+    FileOffset:      128
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          483072
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_128_8: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_140_9:  '
+    FileOffset:      140
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          483285
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_140_9: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_141_10:  '
+    FileOffset:      141
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          483323
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_141_10: '
+  - DiagnosticName:  xilinx-label-all-loops
+    Message:         'Added loop label VITIS_LOOP_151_11:  '
+    FileOffset:      151
+    FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/cpp/semgraph_slam/hls/registration_kernel_draft.cpp
+    Replacements:    
+      - FilePath:        /home/ubuntu/fpga-slam/SG-SLAM/registration_hls/solution1/.autopilot/db/registration_kernel_draft.pp.0.cpp
+        Offset:          483557
+        Length:          0
+        ReplacementText: 'VITIS_LOOP_151_11: '
+...

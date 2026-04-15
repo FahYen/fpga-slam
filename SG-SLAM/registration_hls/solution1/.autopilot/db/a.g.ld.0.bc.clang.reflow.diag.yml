@@ -1,0 +1,1335 @@
+--- !Failure
+Pass:            generate-ir-wrapper
+Name:            MAXIDepthUnspecified
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'A depth specification is required for MAXI interface port '''
+  - Name:            used_count
+  - String:          ''' for cosimulation.'
+...
+--- !Failure
+Pass:            generate-ir-wrapper
+Name:            MAXIDepthUnspecified
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'A depth specification is required for MAXI interface port '''
+  - Name:            dropped_count
+  - String:          ''' for cosimulation.'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 111, Column: 20 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_111_4
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 114, Column: 31 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 123, Column: 27 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_123_6
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 125, Column: 20 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-infer-unroll
+Name:            ImplicitUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 128, Column: 35 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' is marked as complete unroll implied by the pipeline pragma'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_111_4
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:111:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '6'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_114_5
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_123_6
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:123:27'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '6'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '1'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '2'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '4'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '5'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_125_7
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '6'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_128_8
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '3'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_59_2
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:59:22'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '6'
+...
+--- !Passed
+Pass:            reflow-pragma-loop-unroll
+Name:            PragmaFullyUnroll
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Unrolling loop '''
+  - LoopName:        VITIS_LOOP_58_1
+  - String:          ''' ('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:58:19'
+  - String:          ') '
+  - String:          'in function '''
+  - String:          registration_accumulate_kernel
+  - String:          ''' completely with a factor of '
+  - Factor:          '21'
+...
+--- !Passed
+Pass:            reflow-inliner
+Name:            Inline
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Inlining function '''
+  - Callee:          'int const& std::min<int>(int const&, int const&)'
+    DebugLoc:        { File: '/opt/Xilinx/Vitis_HLS/2024.1/tps/lnx64/gcc-8.3.0/lib/gcc/x86_64-pc-linux-gnu/8.3.0/../../../../include/c++/8.3.0/bits/stl_algobase.h', 
+                       Line: 196, Column: 0 }
+  - String:          ''' into '''
+  - Caller:          registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ''''
+...
+--- !Passed
+Pass:            reflow-inliner
+Name:            Inline
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Inlining function '''
+  - Callee:          'graph_slam_hls_draft::(anonymous namespace)::sqr(float)'
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 14, Column: 0 }
+  - String:          ''' into '''
+  - Caller:          registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ''''
+...
+--- !Passed
+Pass:            reflow-inliner
+Name:            Inline
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 34, Column: 0 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Inlining function '''
+  - Callee:          'graph_slam_hls_draft::(anonymous namespace)::SemanticWeight(int)'
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 16, Column: 0 }
+  - String:          ''' into '''
+  - Caller:          registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ''''
+...
+--- !Passed
+Pass:            reflow-array-partition
+Name:            ArrayXform
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 50, Column: 9 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Applying '
+  - String:          array_partition
+  - String:          ' to '''
+  - UOName:          local_jtj
+  - String:          ''':'
+  - String:          ' '
+  - Mode:            Complete
+  - String:          ' partitioning'
+  - String:          ' on dimension '
+  - Dim:             '1'
+  - String:          .
+...
+--- !Passed
+Pass:            reflow-array-partition
+Name:            ArrayXform
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 51, Column: 12 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Applying '
+  - String:          array_partition
+  - String:          ' to '''
+  - UOName:          local_jtr
+  - String:          ''':'
+  - String:          ' '
+  - Mode:            Complete
+  - String:          ' partitioning'
+  - String:          ' on dimension '
+  - Dim:             '1'
+  - String:          .
+...
+--- !Passed
+Pass:            reflow-burst-inference
+Name:            BurstInferred
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Sequential '
+  - Direction:       read
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length'
+  - String:          ' has been inferred'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        src_xyz92seq
+  - ArrayName:       src_xyz
+  - String:          ' '
+  - BundleName:      gmem0
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 80, Column: 26 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.37
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 81, Column: 26 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.41
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 82, Column: 26 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.45
+...
+--- !Passed
+Pass:            reflow-burst-inference
+Name:            BurstInferred
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Sequential '
+  - Direction:       read
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length'
+  - String:          ' has been inferred'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        tgt_xyz93seq
+  - ArrayName:       tgt_xyz
+  - String:          ' '
+  - BundleName:      gmem1
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 84, Column: 26 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.54
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 85, Column: 26 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.57
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 86, Column: 26 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.60
+...
+--- !Passed
+Pass:            reflow-burst-inference
+Name:            BurstInferred
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Sequential '
+  - Direction:       read
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length'
+  - String:          ' has been inferred'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        labels94seq
+  - ArrayName:       labels
+  - String:          ' '
+  - BundleName:      gmem2
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      load
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 94, Column: 55 }
+  - OrigDirection:   read
+  - OrigID:          VITIS_LOOP_111_4.load.79
+...
+--- !Passed
+Pass:            reflow-burst-inference
+Name:            BurstInferred
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 151, Column: 24 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Sequential '
+  - Direction:       write
+  - String:          ' of length '
+  - Length:          '6'
+  - String:          ' has been inferred'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        jtr_out95seq
+  - ArrayName:       jtr_out
+  - String:          ' '
+  - BundleName:      gmem3
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_151_11
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      store
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 153, Column: 13 }
+  - OrigDirection:   write
+  - OrigID:          for.inc207.store.5
+...
+--- !Missed
+Pass:            reflow-burst-inference
+Name:            AccessClobbered
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 144, Column: 32 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Access is clobbered by '
+  - ClobberedBy:     store
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 146, Column: 36 }
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      store
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 144, Column: 32 }
+  - OrigDirection:   write
+  - OrigID:          for.body177.store.9
+  - ArrayName:       jtj_out
+  - String:          ' '
+  - BundleName:      gmem3
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-inference
+Name:            IncompatibleStride
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 146, Column: 36 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          Stride is incompatible
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      store
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 146, Column: 36 }
+  - OrigDirection:   write
+  - OrigID:          if.then186.store.3
+  - ArrayName:       jtj_out
+  - String:          ' '
+  - BundleName:      gmem3
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_141_10
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:141:28'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-widen
+Name:            GreaterOrEqualThreshold
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 151, Column: 24 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Could not widen since type '
+  - Type:            double
+  - String:          ' size is greater than or equal to the max_widen_bitwidth threshold of '
+  - Threshold:       '0'
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      call
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 151, Column: 24 }
+  - OrigDirection:   write
+  - OrigID:          jtr_out95seq
+  - ArrayName:       jtr_out
+  - String:          ' '
+  - BundleName:      gmem3
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_151_11
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-widen
+Name:            GreaterOrEqualThreshold
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Could not widen since type '
+  - Type:            float
+  - String:          ' size is greater than or equal to the max_widen_bitwidth threshold of '
+  - Threshold:       '0'
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      call
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 70, Column: 22 }
+  - OrigDirection:   read
+  - OrigID:          src_xyz92seq
+  - ArrayName:       src_xyz
+  - String:          ' '
+  - BundleName:      gmem0
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-widen
+Name:            GreaterOrEqualThreshold
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Could not widen since type '
+  - Type:            float
+  - String:          ' size is greater than or equal to the max_widen_bitwidth threshold of '
+  - Threshold:       '0'
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      call
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 70, Column: 22 }
+  - OrigDirection:   read
+  - OrigID:          tgt_xyz93seq
+  - ArrayName:       tgt_xyz
+  - String:          ' '
+  - BundleName:      gmem1
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Missed
+Pass:            reflow-burst-widen
+Name:            GreaterOrEqualThreshold
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Could not widen since type '
+  - Type:            i32
+  - String:          ' size is greater than or equal to the max_widen_bitwidth threshold of '
+  - Threshold:       '0'
+  - String:          ' _XLX_SEP_ '
+  - OrigAccess:      call
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 70, Column: 22 }
+  - OrigDirection:   read
+  - OrigID:          labels94seq
+  - ArrayName:       labels
+  - String:          ' '
+  - BundleName:      gmem2
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredVerboseSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       reads
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length and bit width '
+  - Width:           '32'
+  - String:          ' has been inferred.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        seq
+  - ArrayName:       ''
+  - String:          ' '
+  - BundleName:      gmem0
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       reads
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length and bit width '
+  - Width:           '32'
+  - String:          ' in loop '''
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          '''('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ')'
+  - String:          ' has been inferred on bundle '''
+  - BundleName:      gmem0
+  - String:          '''.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredVerboseSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       reads
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length and bit width '
+  - Width:           '32'
+  - String:          ' has been inferred.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        seq1
+  - ArrayName:       ''
+  - String:          ' '
+  - BundleName:      gmem1
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       reads
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length and bit width '
+  - Width:           '32'
+  - String:          ' in loop '''
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          '''('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ')'
+  - String:          ' has been inferred on bundle '''
+  - BundleName:      gmem1
+  - String:          '''.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredVerboseSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       reads
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length and bit width '
+  - Width:           '32'
+  - String:          ' has been inferred.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        seq2
+  - ArrayName:       ''
+  - String:          ' '
+  - BundleName:      gmem2
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 70, Column: 22 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       reads
+  - String:          ' of '
+  - Length:          variable
+  - String:          ' length and bit width '
+  - Width:           '32'
+  - String:          ' in loop '''
+  - LoopName:        VITIS_LOOP_70_3
+  - String:          '''('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22'
+  - String:          ')'
+  - String:          ' has been inferred on bundle '''
+  - BundleName:      gmem2
+  - String:          '''.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredVerboseSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 151, Column: 24 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       writes
+  - String:          ' of length '
+  - Length:          '6'
+  - String:          ' and bit width '
+  - Width:           '64'
+  - String:          ' has been inferred.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+  - String:          ' _XLX_SEP_ '
+  - AccessID:        seq3
+  - ArrayName:       ''
+  - String:          ' '
+  - BundleName:      gmem3
+  - String:          ' '
+  - LoopName:        VITIS_LOOP_151_11
+  - String:          ' '
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24'
+  - String:          ' '
+  - Function:        registration_accumulate_kernel
+    DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                       Line: 34, Column: 0 }
+  - String:          ' '
+...
+--- !Passed
+Pass:            reflow-burst-summary
+Name:            BurstInferredSummary
+DebugLoc:        { File: cpp/semgraph_slam/hls/registration_kernel_draft.cpp, 
+                   Line: 151, Column: 24 }
+Function:        registration_accumulate_kernel
+Args:            
+  - String:          'Multiple burst '
+  - Direction:       writes
+  - String:          ' of length '
+  - Length:          '6'
+  - String:          ' and bit width '
+  - Width:           '64'
+  - String:          ' in loop '''
+  - LoopName:        VITIS_LOOP_151_11
+  - String:          '''('
+  - LoopLoc:         'cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24'
+  - String:          ')'
+  - String:          ' has been inferred on bundle '''
+  - BundleName:      gmem3
+  - String:          '''.'
+  - String:          ' These burst requests might be further partitioned into multiple requests during RTL generation, based on max_read_burst_length or max_write_burst_length settings.'
+...

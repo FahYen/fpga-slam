@@ -1,0 +1,153 @@
+<xilinx:hls_fe_msgs>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="/tmp/run_registration_hls.tcl:23:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaContext="directive" ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="name=registration_accumulate_kernel" ARG_PragmaType="top" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:36:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=src_xyz offset=slave bundle=gmem0" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:37:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=tgt_xyz offset=slave bundle=gmem1" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:38:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=labels offset=slave bundle=gmem2" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:39:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=jtj_out offset=slave bundle=gmem3" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:40:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=jtr_out offset=slave bundle=gmem3" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:41:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=used_count offset=slave bundle=gmem4" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:42:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="m_axi port=dropped_count offset=slave bundle=gmem4" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:44:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="s_axilite port=correspondence_count bundle=control" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:45:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="s_axilite port=kernel bundle=control" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:46:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="s_axilite port=return bundle=control" ARG_PragmaType="interface" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:54:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="variable=local_jtj complete dim=1" ARG_PragmaType="array_partition" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:55:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="variable=local_jtr complete dim=1" ARG_PragmaType="array_partition" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:58:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:59:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:74:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="pipeline" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:75:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="min=1 max=16384 avg=4096" ARG_PragmaType="loop_tripcount" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:100:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="variable=J complete dim=0" ARG_PragmaType="array_partition" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:108:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="variable=r complete dim=0" ARG_PragmaType="array_partition" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:112:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:115:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:124:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:126:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:129:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaType="unroll" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:142:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="II=1" ARG_PragmaType="pipeline" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_VERBOSE_DUMP" msg_id="207-5471" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:152:9" msg_body="HLS pragma dump">
+        <args ARG_PragmaFunction="registration_accumulate_kernel" ARG_PragmaIsValid="1" ARG_PragmaOptions="II=1" ARG_PragmaType="pipeline" ClangWarningOption="dump-hls-pragmas"/>
+    </msg>
+    <msg msg_groups="PRAGMA_INTERFACE" msg_id="214-386" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="A depth specification is required for MAXI interface port 'used_count' for cosimulation.">
+        <args Name="used_count"/>
+    </msg>
+    <msg msg_groups="PRAGMA_INTERFACE" msg_id="214-386" msg_severity="WARNING" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="A depth specification is required for MAXI interface port 'dropped_count' for cosimulation.">
+        <args Name="dropped_count"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-291" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:111:20" msg_body="Loop 'VITIS_LOOP_111_4' is marked as complete unroll implied by the pipeline pragma">
+        <args LoopName="VITIS_LOOP_111_4"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-291" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31" msg_body="Loop 'VITIS_LOOP_114_5' is marked as complete unroll implied by the pipeline pragma">
+        <args LoopName="VITIS_LOOP_114_5"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-291" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:123:27" msg_body="Loop 'VITIS_LOOP_123_6' is marked as complete unroll implied by the pipeline pragma">
+        <args LoopName="VITIS_LOOP_123_6"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-291" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" msg_body="Loop 'VITIS_LOOP_125_7' is marked as complete unroll implied by the pipeline pragma">
+        <args LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-291" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35" msg_body="Loop 'VITIS_LOOP_128_8' is marked as complete unroll implied by the pipeline pragma">
+        <args LoopName="VITIS_LOOP_128_8"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_111_4' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:111:20) in function 'registration_accumulate_kernel' completely with a factor of 6">
+        <args Factor="6" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:111:20" LoopName="VITIS_LOOP_111_4"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_114_5' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31) in function 'registration_accumulate_kernel' completely with a factor of 3">
+        <args Factor="3" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:114:31" LoopName="VITIS_LOOP_114_5"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_123_6' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:123:27) in function 'registration_accumulate_kernel' completely with a factor of 6">
+        <args Factor="6" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:123:27" LoopName="VITIS_LOOP_123_6"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_125_7' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20) in function 'registration_accumulate_kernel' completely with a factor of 1">
+        <args Factor="1" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_128_8' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35) in function 'registration_accumulate_kernel' completely with a factor of 3">
+        <args Factor="3" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:128:35" LoopName="VITIS_LOOP_128_8"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_125_7' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20) in function 'registration_accumulate_kernel' completely with a factor of 2">
+        <args Factor="2" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_125_7' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20) in function 'registration_accumulate_kernel' completely with a factor of 3">
+        <args Factor="3" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_125_7' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20) in function 'registration_accumulate_kernel' completely with a factor of 4">
+        <args Factor="4" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_125_7' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20) in function 'registration_accumulate_kernel' completely with a factor of 5">
+        <args Factor="5" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_125_7' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20) in function 'registration_accumulate_kernel' completely with a factor of 6">
+        <args Factor="6" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:125:20" LoopName="VITIS_LOOP_125_7"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_59_2' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:59:22) in function 'registration_accumulate_kernel' completely with a factor of 6">
+        <args Factor="6" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:59:22" LoopName="VITIS_LOOP_59_2"/>
+    </msg>
+    <msg msg_groups="PRAGMA_UNROLL" msg_id="214-186" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Unrolling loop 'VITIS_LOOP_58_1' (cpp/semgraph_slam/hls/registration_kernel_draft.cpp:58:19) in function 'registration_accumulate_kernel' completely with a factor of 21">
+        <args Factor="21" LoopLoc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:58:19" LoopName="VITIS_LOOP_58_1"/>
+    </msg>
+    <msg msg_groups="PRAGMA_INLINE" msg_id="214-178" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Inlining function 'int const&amp; std::min&lt;int&gt;(int const&amp;, int const&amp;)' into 'registration_accumulate_kernel'">
+        <args Callee="int const&amp; std::min&lt;int&gt;(int const&amp;, int const&amp;)" Callee-DebugLoc="File /opt/Xilinx/Vitis_HLS/2024.1/tps/lnx64/gcc-8.3.0/lib/gcc/x86_64-pc-linux-gnu/8.3.0/../../../../include/c++/8.3.0/bits/stl_algobase.h Line 196 Column 0" Caller="registration_accumulate_kernel" Caller-DebugLoc="File cpp/semgraph_slam/hls/registration_kernel_draft.cpp Line 34 Column 0"/>
+    </msg>
+    <msg msg_groups="PRAGMA_INLINE" msg_id="214-178" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Inlining function 'graph_slam_hls_draft::(anonymous namespace)::sqr(float)' into 'registration_accumulate_kernel'">
+        <args Callee="graph_slam_hls_draft::(anonymous namespace)::sqr(float)" Callee-DebugLoc="File cpp/semgraph_slam/hls/registration_kernel_draft.cpp Line 14 Column 0" Caller="registration_accumulate_kernel" Caller-DebugLoc="File cpp/semgraph_slam/hls/registration_kernel_draft.cpp Line 34 Column 0"/>
+    </msg>
+    <msg msg_groups="PRAGMA_INLINE" msg_id="214-178" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:34:0" msg_body="Inlining function 'graph_slam_hls_draft::(anonymous namespace)::SemanticWeight(int)' into 'registration_accumulate_kernel'">
+        <args Callee="graph_slam_hls_draft::(anonymous namespace)::SemanticWeight(int)" Callee-DebugLoc="File cpp/semgraph_slam/hls/registration_kernel_draft.cpp Line 16 Column 0" Caller="registration_accumulate_kernel" Caller-DebugLoc="File cpp/semgraph_slam/hls/registration_kernel_draft.cpp Line 34 Column 0"/>
+    </msg>
+    <msg msg_groups="PRAGMA_MISC" msg_id="214-248" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:50:9" msg_body="Applying array_partition to 'local_jtj': Complete partitioning on dimension 1.">
+        <args Dim="1" Mode="Complete" UOName="local_jtj"/>
+    </msg>
+    <msg msg_groups="PRAGMA_MISC" msg_id="214-248" msg_severity="INFO" msg_loc="cpp/semgraph_slam/hls/registration_kernel_draft.cpp:51:12" msg_body="Applying array_partition to 'local_jtr': Complete partitioning on dimension 1.">
+        <args Dim="1" Mode="Complete" UOName="local_jtr"/>
+    </msg>
+</xilinx:hls_fe_msgs>
+

@@ -1,0 +1,19 @@
+{
+  "0": {
+    "basicblocks": 16,
+    "calls": "",
+    "file": "registration_kernel_draft.cpp",
+    "fileloc": 26,
+    "instructions": 377,
+    "loads": {
+      "L": 3,
+      "T": 7
+    },
+    "name": "registration_accumulate_kernel",
+    "stores": {
+      "L": 56,
+      "T": 5
+    },
+    "total_instructions": 377
+  }
+}

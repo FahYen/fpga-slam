@@ -1,0 +1,421 @@
+
+
+================================================================
+== Synthesis Summary Report of 'registration_accumulate_kernel'
+================================================================
++ General Information: 
+    * Date:           Wed Apr 15 02:32:40 2026
+    * Version:        2024.1 (Build 5069499 on May 21 2024)
+    * Project:        registration_hls
+    * Solution:       solution1 (Vivado IP Flow Target)
+    * Product family: virtexuplus
+    * Target device:  xcvu9p-flgb2104-2-i
+    
+
++ Performance & Resource Estimates: 
+    
+    PS: '+' for module; 'o' for loop; '*' for dataflow
+    +---------------------------------------------------------------+--------+-------+---------+-----------+----------+---------+-------+----------+---------+----------+-------------+------------+-----+
+    |                            Modules                            |  Issue |       | Latency |  Latency  | Iteration|         |  Trip |          |         |          |             |            |     |
+    |                            & Loops                            |  Type  | Slack | (cycles)|    (ns)   |  Latency | Interval| Count | Pipelined|  BRAM   |    DSP   |      FF     |     LUT    | URAM|
+    +---------------------------------------------------------------+--------+-------+---------+-----------+----------+---------+-------+----------+---------+----------+-------------+------------+-----+
+    |+ registration_accumulate_kernel                               |  Timing|  -0.29|    98540|  3.942e+05|         -|    98541|      -|        no|  6 (~0%)|  108 (1%)|   27034 (1%)|  19783 (1%)|    -|
+    | + registration_accumulate_kernel_Pipeline_VITIS_LOOP_70_3     |  Timing|  -0.29|    98373|  3.935e+05|         -|    98373|      -|        no|        -|  105 (1%)|  21851 (~0%)|  13404 (1%)|    -|
+    |  o VITIS_LOOP_70_3                                            |      II|   2.92|    98371|  3.935e+05|        74|        6|  16384|       yes|        -|         -|            -|           -|    -|
+    | + registration_accumulate_kernel_Pipeline_VITIS_LOOP_151_11   |       -|   0.00|        8|     32.000|         -|        8|      -|        no|        -|         -|     70 (~0%)|   100 (~0%)|    -|
+    |  o VITIS_LOOP_151_11                                          |       -|   2.92|        6|     24.000|         2|        1|      6|       yes|        -|         -|            -|           -|    -|
+    | o VITIS_LOOP_140_9                                            |       -|   2.92|      138|    552.000|        23|        -|      6|        no|        -|         -|            -|           -|    -|
+    |  + registration_accumulate_kernel_Pipeline_VITIS_LOOP_141_10  |       -|   0.00|       20|     80.000|         -|       20|      -|        no|        -|         -|    408 (~0%)|   590 (~0%)|    -|
+    |   o VITIS_LOOP_141_10                                         |      II|   2.92|       18|     72.000|         9|        2|      6|       yes|        -|         -|            -|           -|    -|
+    +---------------------------------------------------------------+--------+-------+---------+-----------+----------+---------+-------+----------+---------+----------+-------------+------------+-----+
+
+
+================================================================
+== HW Interfaces
+================================================================
+* M_AXI
++-------------+------------+------------+---------------+---------+--------+----------+-----------+--------------+--------------+-------------+-------------+-------------------+
+| Interface   | Read/Write | Data Width | Address Width | Latency | Offset | Register | Max Widen | Max Read     | Max Write    | Num Read    | Num Write   | Resource Estimate |
+|             |            | (SW->HW)   |               |         |        |          | Bitwidth  | Burst Length | Burst Length | Outstanding | Outstanding |                   |
++-------------+------------+------------+---------------+---------+--------+----------+-----------+--------------+--------------+-------------+-------------+-------------------+
+| m_axi_gmem0 | READ_ONLY  | 32 -> 32   | 64            | 0       | slave  | 0        | 0         | 16           | 16           | 16          | 16          | BRAM=1            |
+| m_axi_gmem1 | READ_ONLY  | 32 -> 32   | 64            | 0       | slave  | 0        | 0         | 16           | 16           | 16          | 16          | BRAM=1            |
+| m_axi_gmem2 | READ_ONLY  | 32 -> 32   | 64            | 0       | slave  | 0        | 0         | 16           | 16           | 16          | 16          | BRAM=1            |
+| m_axi_gmem3 | WRITE_ONLY | 64 -> 64   | 64            | 0       | slave  | 0        | 0         | 16           | 16           | 16          | 16          | BRAM=2            |
+| m_axi_gmem4 | WRITE_ONLY | 32 -> 32   | 64            | 0       | slave  | 0        | 0         | 16           | 16           | 16          | 16          | BRAM=1            |
++-------------+------------+------------+---------------+---------+--------+----------+-----------+--------------+--------------+-------------+-------------+-------------------+
+
+* S_AXILITE Interfaces
++-----------------+------------+---------------+--------+----------+
+| Interface       | Data Width | Address Width | Offset | Register |
++-----------------+------------+---------------+--------+----------+
+| s_axi_control   | 32         | 5             | 16     | 0        |
+| s_axi_control_r | 32         | 7             | 16     | 0        |
++-----------------+------------+---------------+--------+----------+
+
+* S_AXILITE Registers
++-----------------+----------------------+--------+-------+--------+-------------------------------------+----------------------------------------------------------------------+
+| Interface       | Register             | Offset | Width | Access | Description                         | Bit Fields                                                           |
++-----------------+----------------------+--------+-------+--------+-------------------------------------+----------------------------------------------------------------------+
+| s_axi_control   | CTRL                 | 0x00   | 32    | RW     | Control signals                     | 0=AP_START 1=AP_DONE 2=AP_IDLE 3=AP_READY 7=AUTO_RESTART 9=INTERRUPT |
+| s_axi_control   | GIER                 | 0x04   | 32    | RW     | Global Interrupt Enable Register    | 0=Enable                                                             |
+| s_axi_control   | IP_IER               | 0x08   | 32    | RW     | IP Interrupt Enable Register        | 0=CHAN0_INT_EN 1=CHAN1_INT_EN                                        |
+| s_axi_control   | IP_ISR               | 0x0c   | 32    | RW     | IP Interrupt Status Register        | 0=CHAN0_INT_ST 1=CHAN1_INT_ST                                        |
+| s_axi_control   | correspondence_count | 0x10   | 32    | W      | Data signal of correspondence_count |                                                                      |
+| s_axi_control   | kernel               | 0x18   | 32    | W      | Data signal of kernel               |                                                                      |
+| s_axi_control_r | src_xyz_1            | 0x10   | 32    | W      | Data signal of src_xyz              |                                                                      |
+| s_axi_control_r | src_xyz_2            | 0x14   | 32    | W      | Data signal of src_xyz              |                                                                      |
+| s_axi_control_r | tgt_xyz_1            | 0x1c   | 32    | W      | Data signal of tgt_xyz              |                                                                      |
+| s_axi_control_r | tgt_xyz_2            | 0x20   | 32    | W      | Data signal of tgt_xyz              |                                                                      |
+| s_axi_control_r | labels_1             | 0x28   | 32    | W      | Data signal of labels               |                                                                      |
+| s_axi_control_r | labels_2             | 0x2c   | 32    | W      | Data signal of labels               |                                                                      |
+| s_axi_control_r | jtj_out_1            | 0x34   | 32    | W      | Data signal of jtj_out              |                                                                      |
+| s_axi_control_r | jtj_out_2            | 0x38   | 32    | W      | Data signal of jtj_out              |                                                                      |
+| s_axi_control_r | jtr_out_1            | 0x40   | 32    | W      | Data signal of jtr_out              |                                                                      |
+| s_axi_control_r | jtr_out_2            | 0x44   | 32    | W      | Data signal of jtr_out              |                                                                      |
+| s_axi_control_r | used_count_1         | 0x4c   | 32    | W      | Data signal of used_count           |                                                                      |
+| s_axi_control_r | used_count_2         | 0x50   | 32    | W      | Data signal of used_count           |                                                                      |
+| s_axi_control_r | dropped_count_1      | 0x58   | 32    | W      | Data signal of dropped_count        |                                                                      |
+| s_axi_control_r | dropped_count_2      | 0x5c   | 32    | W      | Data signal of dropped_count        |                                                                      |
++-----------------+----------------------+--------+-------+--------+-------------------------------------+----------------------------------------------------------------------+
+
+* TOP LEVEL CONTROL
++-----------+------------+-----------+
+| Interface | Type       | Ports     |
++-----------+------------+-----------+
+| ap_clk    | clock      | ap_clk    |
+| ap_rst_n  | reset      | ap_rst_n  |
+| interrupt | interrupt  | interrupt |
+| ap_ctrl   | ap_ctrl_hs |           |
++-----------+------------+-----------+
+
+
+================================================================
+== SW I/O Information
+================================================================
+* Top Function Arguments
++----------------------+-----------+---------------+
+| Argument             | Direction | Datatype      |
++----------------------+-----------+---------------+
+| src_xyz              | in        | float const * |
+| tgt_xyz              | in        | float const * |
+| labels               | in        | int const *   |
+| correspondence_count | in        | int           |
+| kernel               | in        | float         |
+| jtj_out              | out       | double*       |
+| jtr_out              | out       | double*       |
+| used_count           | out       | int*          |
+| dropped_count        | out       | int*          |
++----------------------+-----------+---------------+
+
+* SW-to-HW Mapping
++----------------------+-----------------+-----------+----------+------------------------------------------------+
+| Argument             | HW Interface    | HW Type   | HW Usage | HW Info                                        |
++----------------------+-----------------+-----------+----------+------------------------------------------------+
+| src_xyz              | m_axi_gmem0     | interface |          | channel=0                                      |
+| src_xyz              | s_axi_control_r | register  | offset   | name=src_xyz_1 offset=0x10 range=32            |
+| src_xyz              | s_axi_control_r | register  | offset   | name=src_xyz_2 offset=0x14 range=32            |
+| tgt_xyz              | m_axi_gmem1     | interface |          | channel=0                                      |
+| tgt_xyz              | s_axi_control_r | register  | offset   | name=tgt_xyz_1 offset=0x1c range=32            |
+| tgt_xyz              | s_axi_control_r | register  | offset   | name=tgt_xyz_2 offset=0x20 range=32            |
+| labels               | m_axi_gmem2     | interface |          | channel=0                                      |
+| labels               | s_axi_control_r | register  | offset   | name=labels_1 offset=0x28 range=32             |
+| labels               | s_axi_control_r | register  | offset   | name=labels_2 offset=0x2c range=32             |
+| correspondence_count | s_axi_control   | register  |          | name=correspondence_count offset=0x10 range=32 |
+| kernel               | s_axi_control   | register  |          | name=kernel offset=0x18 range=32               |
+| jtj_out              | m_axi_gmem3     | interface |          | channel=0                                      |
+| jtj_out              | s_axi_control_r | register  | offset   | name=jtj_out_1 offset=0x34 range=32            |
+| jtj_out              | s_axi_control_r | register  | offset   | name=jtj_out_2 offset=0x38 range=32            |
+| jtr_out              | m_axi_gmem3     | interface |          | channel=0                                      |
+| jtr_out              | s_axi_control_r | register  | offset   | name=jtr_out_1 offset=0x40 range=32            |
+| jtr_out              | s_axi_control_r | register  | offset   | name=jtr_out_2 offset=0x44 range=32            |
+| used_count           | m_axi_gmem4     | interface |          | channel=0                                      |
+| used_count           | s_axi_control_r | register  | offset   | name=used_count_1 offset=0x4c range=32         |
+| used_count           | s_axi_control_r | register  | offset   | name=used_count_2 offset=0x50 range=32         |
+| dropped_count        | m_axi_gmem4     | interface |          | channel=0                                      |
+| dropped_count        | s_axi_control_r | register  | offset   | name=dropped_count_1 offset=0x58 range=32      |
+| dropped_count        | s_axi_control_r | register  | offset   | name=dropped_count_2 offset=0x5c range=32      |
++----------------------+-----------------+-----------+----------+------------------------------------------------+
+
+
+================================================================
+== M_AXI Burst Information
+================================================================
+ Note: All burst requests might be further partitioned into multiple requests during RTL generation based on max_read_burst_length or max_write_burst_length settings.
+
+* Inferred Burst Summary
++--------------+-----------+----------+-------+-------------------+------------------------------------------------------------+
+| HW Interface | Direction | Length   | Width | Loop              | Loop Location                                              |
++--------------+-----------+----------+-------+-------------------+------------------------------------------------------------+
+| m_axi_gmem0  | read      | variable | 32    | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |
+| m_axi_gmem1  | read      | variable | 32    | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |
+| m_axi_gmem2  | read      | variable | 32    | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |
+| m_axi_gmem3  | write     | 6        | 64    | VITIS_LOOP_151_11 | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24 |
++--------------+-----------+----------+-------+-------------------+------------------------------------------------------------+
+
+* All M_AXI Variable Accesses
++--------------+----------+------------------------------------------------------------+-----------+--------------+----------+-------------------+------------------------------------------------------------+------------+----------------------------------------------------------------------------------------------------------+
+| HW Interface | Variable | Access Location                                            | Direction | Burst Status | Length   | Loop              | Loop Location                                              | Resolution | Problem                                                                                                  |
++--------------+----------+------------------------------------------------------------+-----------+--------------+----------+-------------------+------------------------------------------------------------+------------+----------------------------------------------------------------------------------------------------------+
+| m_axi_gmem0  | src_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:80:26  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type float size is greater than or equal to the max_widen_bitwidth threshold of 0  |
+| m_axi_gmem0  | src_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:80:26  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem0  | src_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:81:26  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type float size is greater than or equal to the max_widen_bitwidth threshold of 0  |
+| m_axi_gmem0  | src_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:81:26  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem0  | src_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:82:26  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type float size is greater than or equal to the max_widen_bitwidth threshold of 0  |
+| m_axi_gmem0  | src_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:82:26  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem1  | tgt_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:84:26  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type float size is greater than or equal to the max_widen_bitwidth threshold of 0  |
+| m_axi_gmem1  | tgt_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:84:26  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem1  | tgt_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:85:26  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type float size is greater than or equal to the max_widen_bitwidth threshold of 0  |
+| m_axi_gmem1  | tgt_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:85:26  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem1  | tgt_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:86:26  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type float size is greater than or equal to the max_widen_bitwidth threshold of 0  |
+| m_axi_gmem1  | tgt_xyz  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:86:26  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem2  | labels   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:94:55  | read      | Widen Fail   |          | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  | 214-353    | Could not widen since type i32 size is greater than or equal to the max_widen_bitwidth threshold of 0    |
+| m_axi_gmem2  | labels   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:94:55  | read      | Inferred     | variable | VITIS_LOOP_70_3   | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:70:22  |            |                                                                                                          |
+| m_axi_gmem3  | jtj_out  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:144:32 | write     | Fail         |          |                   |                                                            | 214-231    | Access is clobbered by store                                                                             |
+| m_axi_gmem3  | jtj_out  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:146:36 | write     | Fail         |          | VITIS_LOOP_141_10 | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:141:28 | 214-230    | Stride is incompatible                                                                                   |
+| m_axi_gmem3  | jtr_out  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:153:13 | write     | Widen Fail   |          | VITIS_LOOP_151_11 | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24 | 214-353    | Could not widen since type double size is greater than or equal to the max_widen_bitwidth threshold of 0 |
+| m_axi_gmem3  | jtr_out  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:153:13 | write     | Inferred     | 6        | VITIS_LOOP_151_11 | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:151:24 |            |                                                                                                          |
++--------------+----------+------------------------------------------------------------+-----------+--------------+----------+-------------------+------------------------------------------------------------+------------+----------------------------------------------------------------------------------------------------------+
+
+    * Resolution URL: docs.xilinx.com/access/sources/dita/topic?Doc_Version=2024.1%20English&url=ug1448-hls-guidance&resourceid=XXX-YYY.html (replace XXX-YYY with column value)
+
+================================================================
+== Bind Op Report
+================================================================
++--------------------------------------------------------------+-----+--------+---------------+-----------+----------+---------+
+| Name                                                         | DSP | Pragma | Variable      | Op        | Impl     | Latency |
++--------------------------------------------------------------+-----+--------+---------------+-----------+----------+---------+
+| + registration_accumulate_kernel                             | 108 |        |               |           |          |         |
+|   requested_fu_594_p3                                        |     |        | requested     | select    | auto_sel | 0       |
+|   icmp_ln200_fu_604_p2                                       |     |        | icmp_ln200    | setgt     | auto     | 0       |
+|   bounded_count_fu_610_p3                                    |     |        | bounded_count | select    | auto_sel | 0       |
+|   sub_ln65_fu_661_p2                                         |     |        | sub_ln65      | sub       | fabric   | 0       |
+|   fmul_32ns_32ns_32_4_max_dsp_1_U106                         | 3   |        | kernel_sq     | fmul      | maxdsp   | 3       |
+|   icmp_ln70_fu_618_p2                                        |     |        | icmp_ln70     | setne     | auto     | 0       |
+|   sub_ln70_1_fu_640_p2                                       |     |        | sub_ln70_1    | sub       | fabric   | 0       |
+|   empty_fu_646_p3                                            |     |        | empty         | select    | auto_sel | 0       |
+|   empty_60_fu_706_p2                                         |     |        | empty_60      | setgt     | auto     | 0       |
+|   xor_ln70_fu_711_p2                                         |     |        | xor_ln70      | xor       | auto     | 0       |
+|   select_ln70_fu_716_p3                                      |     |        | select_ln70   | select    | auto_sel | 0       |
+|   empty_61_fu_724_p2                                         |     |        | empty_61      | setgt     | auto     | 0       |
+|   sub_ln70_fu_730_p2                                         |     |        | sub_ln70      | sub       | fabric   | 0       |
+|   select_ln70_1_fu_736_p3                                    |     |        | select_ln70_1 | select    | auto_sel | 0       |
+|   fmul_32ns_32ns_32_4_max_dsp_1_U106                         |     |        | add_ln70      | add       | fabric   | 0       |
+|   icmp_ln140_fu_839_p2                                       |     |        | icmp_ln140    | seteq     | auto     | 0       |
+|   add_ln140_1_fu_845_p2                                      |     |        | add_ln140_1   | add       | fabric   | 0       |
+|   sub_ln141_fu_875_p2                                        |     |        | sub_ln141     | sub       | fabric   | 0       |
+|   read_idx_2_fu_906_p2                                       |     |        | read_idx_2    | add       | fabric   | 0       |
+|   add_ln140_fu_912_p2                                        |     |        | add_ln140     | add       | fabric   | 0       |
+|  + registration_accumulate_kernel_Pipeline_VITIS_LOOP_70_3   | 105 |        |               |           |          |         |
+|    icmp_ln70_fu_861_p2                                       |     |        | icmp_ln70     | seteq     | auto     | 0       |
+|    add_ln70_fu_866_p2                                        |     |        | add_ln70      | add       | fabric   | 0       |
+|    faddfsub_32ns_32ns_32_7_full_dsp_1_U1                     | 2   |        | rx            | fsub      | fulldsp  | 6       |
+|    faddfsub_32ns_32ns_32_7_full_dsp_1_U1                     | 2   |        | ry            | fsub      | fulldsp  | 6       |
+|    faddfsub_32ns_32ns_32_7_full_dsp_1_U1                     | 2   |        | rz            | fsub      | fulldsp  | 6       |
+|    faddfsub_32ns_32ns_32_7_full_dsp_1_U1                     | 2   |        | add           | fsub      | fulldsp  | 6       |
+|    faddfsub_32ns_32ns_32_7_full_dsp_1_U1                     | 2   |        | residual2     | fsub      | fulldsp  | 6       |
+|    faddfsub_32ns_32ns_32_7_full_dsp_1_U1                     | 2   |        | add2          | fsub      | fulldsp  | 6       |
+|    fdiv_32ns_32ns_32_12_no_dsp_1_U3                          |     |        | w_float       | fdiv      | fabric   | 11      |
+|    fpext_32ns_64_2_no_dsp_1_U5                               |     |        | w             | fpext     | auto     | 1       |
+|    fpext_32ns_64_2_no_dsp_1_U4                               |     |        | conv          | fpext     | auto     | 1       |
+|    grp_fu_696_p2                                             |     |        | xor_ln103     | xor       | auto     | 0       |
+|    fpext_32ns_64_2_no_dsp_1_U4                               |     |        | conv1         | fpext     | auto     | 1       |
+|    grp_fu_696_p2                                             |     |        | xor_ln104     | xor       | auto     | 0       |
+|    fpext_32ns_64_2_no_dsp_1_U5                               |     |        | conv2         | fpext     | auto     | 1       |
+|    fpext_32ns_64_2_no_dsp_1_U4                               |     |        | conv3         | fpext     | auto     | 1       |
+|    fpext_32ns_64_2_no_dsp_1_U4                               |     |        | conv4         | fpext     | auto     | 1       |
+|    grp_fu_696_p2                                             |     |        | xor_ln105     | xor       | auto     | 0       |
+|    fpext_32ns_64_2_no_dsp_1_U5                               |     |        | conv5         | fpext     | auto     | 1       |
+|    fpext_32ns_64_2_no_dsp_1_U5                               |     |        | conv6         | fpext     | auto     | 1       |
+|    fpext_32ns_64_2_no_dsp_1_U5                               |     |        | conv7         | fpext     | auto     | 1       |
+|    fpext_32ns_64_2_no_dsp_1_U4                               |     |        | conv8         | fpext     | auto     | 1       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U7                         | 3   |        | jtr_acc       | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U22                         | 8   |        | mul116_s      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U7                         | 3   |        | jtr_acc_1     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U19                         | 8   |        | mul116_2      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U16                        | 3   |        | jtr_acc_2     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U22                         | 8   |        | mul4          | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U9                         | 3   |        | add4          | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U21                         | 8   |        | mul116_1      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U11                        | 3   |        | jtr_acc_3     | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U11                        | 3   |        | jtr_acc_4     | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U11                        | 3   |        | jtr_acc_5     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U23                         | 8   |        | mul121_1      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U10                        | 3   |        | add124_1      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U12                        | 3   |        | jtr_acc_6     | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U12                        | 3   |        | jtr_acc_7     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U24                         | 8   |        | mul121_2      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U11                        | 3   |        | add124_2      | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U23                         | 8   |        | mul116_3_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U13                        | 3   |        | jtr_acc_8     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U20                         | 8   |        | mul116_3_2    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U13                        | 3   |        | jtr_acc_9     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U25                         | 8   |        | mul121_3      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U12                        | 3   |        | add124_3      | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U22                         | 8   |        | mul116_4      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U12                        | 3   |        | jtr_acc_10    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U14                        | 3   |        | jtr_acc_11    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U21                         | 8   |        | mul116_4_2    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U14                        | 3   |        | jtr_acc_12    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U26                         | 8   |        | mul121_4      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U13                        | 3   |        | add124_4      | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U23                         | 8   |        | mul116_5      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U13                        | 3   |        | jtr_acc_13    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U24                         | 8   |        | mul116_5_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U15                        | 3   |        | jtr_acc_14    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U15                        | 3   |        | jtr_acc_15    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U19                         | 8   |        | mul121_5      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U16                        | 3   |        | add124_5      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U6                         | 3   |        | add5          | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U20                         | 8   |        | mul154_s      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U17                        | 3   |        | add158_s      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U18                        | 3   |        | add158_6      | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U19                         | 8   |        | mul149_3117_1 | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U8                         | 3   |        | jtj_acc       | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U19                         | 8   |        | mul149_3117_2 | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U14                        | 3   |        | jtj_acc_1     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U21                         | 8   |        | mul154_1      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U18                        | 3   |        | add158_7      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U6                         | 3   |        | jtj_acc_2     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U19                         | 8   |        | mul149_4128_2 | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U8                         | 3   |        | jtj_acc_3     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U22                         | 8   |        | mul154_2      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U17                        | 3   |        | add158_8      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U6                         | 3   |        | jtj_acc_4     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U20                         | 8   |        | mul149_5139_1 | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U6                         | 3   |        | jtj_acc_5     | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U6                         | 3   |        | jtj_acc_6     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U23                         | 8   |        | mul154_6      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U18                        | 3   |        | add158_9      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U7                         | 3   |        | add158_1      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U8                         | 3   |        | add158_1_1    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U7                         | 3   |        | jtj_acc_7     | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U6                         | 3   |        | jtj_acc_8     | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U24                         | 8   |        | mul154_1_2    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U9                         | 3   |        | add158_1_2    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U20                         | 8   |        | mul149_1_3    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U9                         | 3   |        | jtj_acc_9     | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U15                        | 3   |        | jtj_acc_10    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U25                         | 8   |        | mul154_1_3    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U10                        | 3   |        | add158_1_3    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U19                         | 8   |        | mul149_1_4    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U9                         | 3   |        | jtj_acc_11    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U7                         | 3   |        | jtj_acc_12    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U7                         | 3   |        | jtj_acc_13    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U26                         | 8   |        | mul154_1_4    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U11                        | 3   |        | add158_1_4    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U8                         | 3   |        | add158_2      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U16                        | 3   |        | jtj_acc_14    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U23                         | 8   |        | mul154_2_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U12                        | 3   |        | add158_2_1    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U13                        | 3   |        | jtj_acc_15    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U24                         | 8   |        | mul154_2_2    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U13                        | 3   |        | add158_2_2    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U8                         | 3   |        | jtj_acc_16    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U8                         | 3   |        | jtj_acc_17    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U25                         | 8   |        | mul154_2_3    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U14                        | 3   |        | add158_2_3    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U21                         | 8   |        | mul149_3_s    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U10                        | 3   |        | jtj_acc_18    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U20                         | 8   |        | mul149_3_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U14                        | 3   |        | jtj_acc_19    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U26                         | 8   |        | mul154_3      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U15                        | 3   |        | add158_3      | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U17                        | 3   |        | jtj_acc_20    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U21                         | 8   |        | mul149_3_1_2  | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U16                        | 3   |        | jtj_acc_21    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U24                         | 8   |        | mul154_3_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U16                        | 3   |        | add158_3_1    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U22                         | 8   |        | mul149_3_2_1  | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U9                         | 3   |        | jtj_acc_22    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U9                         | 3   |        | jtj_acc_23    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U25                         | 8   |        | mul154_3_2    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U17                        | 3   |        | add158_3_2    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U23                         | 8   |        | mul149_4      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U11                        | 3   |        | jtj_acc_24    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U21                         | 8   |        | mul149_4_2    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U15                        | 3   |        | jtj_acc_25    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U26                         | 8   |        | mul154_4      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U18                        | 3   |        | add158_4      | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U24                         | 8   |        | mul149_4_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U12                        | 3   |        | jtj_acc_26    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U18                        | 3   |        | jtj_acc_27    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U17                        | 3   |        | jtj_acc_28    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U25                         | 8   |        | mul154_4_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U14                        | 3   |        | add158_4_1    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U20                         | 8   |        | mul149_5      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U10                        | 3   |        | jtj_acc_29    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U22                         | 8   |        | mul149_5_1    | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U10                        | 3   |        | jtj_acc_30    | dadd      | fulldsp  | 4       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U10                        | 3   |        | jtj_acc_31    | dadd      | fulldsp  | 4       |
+|    dmul_64ns_64ns_64_6_max_dsp_1_U26                         | 8   |        | mul154_5      | dmul      | maxdsp   | 5       |
+|    dadd_64ns_64ns_64_5_full_dsp_1_U15                        | 3   |        | add158_5      | dadd      | fulldsp  | 4       |
+|  + registration_accumulate_kernel_Pipeline_VITIS_LOOP_141_10 | 0   |        |               |           |          |         |
+|    icmp_ln141_fu_397_p2                                      |     |        | icmp_ln141    | seteq     | auto     | 0       |
+|    add_ln143_fu_414_p2                                       |     |        | add_ln143     | add       | fabric   | 0       |
+|    sparsemux_43_5_64_1_1_U67                                 |     |        | val           | sparsemux | auto     | 0       |
+|    add_ln144_fu_512_p2                                       |     |        | add_ln144     | add       | fabric   | 0       |
+|    add_ln144_1_fu_530_p2                                     |     |        | add_ln144_1   | add       | fabric   | 0       |
+|    icmp_ln145_fu_546_p2                                      |     |        | icmp_ln145    | seteq     | auto     | 0       |
+|    add_ln146_1_fu_619_p2                                     |     |        | add_ln146_1   | add       | fabric   | 0       |
+|    add_ln141_fu_552_p2                                       |     |        | add_ln141     | add       | fabric   | 0       |
+|  + registration_accumulate_kernel_Pipeline_VITIS_LOOP_151_11 | 0   |        |               |           |          |         |
+|    icmp_ln151_fu_138_p2                                      |     |        | icmp_ln151    | seteq     | auto     | 0       |
+|    add_ln151_fu_144_p2                                       |     |        | add_ln151     | add       | fabric   | 0       |
+|    sparsemux_13_3_64_1_1_U96                                 |     |        | tmp           | sparsemux | auto     | 0       |
++--------------------------------------------------------------+-----+--------+---------------+-----------+----------+---------+
+
+
+================================================================
+== Storage Report
+================================================================
++----------------------------------+-----------+-----------+------+------+--------+----------+------+---------+------------------+
+| Name                             | Usage     | Type      | BRAM | URAM | Pragma | Variable | Impl | Latency | Bitwidth, Depth, |
+|                                  |           |           |      |      |        |          |      |         | Banks            |
++----------------------------------+-----------+-----------+------+------+--------+----------+------+---------+------------------+
+| + registration_accumulate_kernel |           |           | 6    | 0    |        |          |      |         |                  |
+|   control_s_axi_U                | interface | s_axilite |      |      |        |          |      |         |                  |
+|   control_r_s_axi_U              | interface | s_axilite |      |      |        |          |      |         |                  |
+|   gmem0_m_axi_U                  | interface | m_axi     | 1    |      |        |          |      |         |                  |
+|   gmem1_m_axi_U                  | interface | m_axi     | 1    |      |        |          |      |         |                  |
+|   gmem2_m_axi_U                  | interface | m_axi     | 1    |      |        |          |      |         |                  |
+|   gmem3_m_axi_U                  | interface | m_axi     | 2    |      |        |          |      |         |                  |
+|   gmem4_m_axi_U                  | interface | m_axi     | 1    |      |        |          |      |         |                  |
++----------------------------------+-----------+-----------+------+------+--------+----------+------+---------+------------------+
+
+
+================================================================
+== Pragma Report
+================================================================
+* Valid Pragma Syntax
++-----------------+----------------------------------------------------+----------------------------------------------------------------------------------------------------------------+
+| Type            | Options                                            | Location                                                                                                       |
++-----------------+----------------------------------------------------+----------------------------------------------------------------------------------------------------------------+
+| interface       | m_axi port=src_xyz offset=slave bundle=gmem0       | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:36 in registration_accumulate_kernel, src_xyz              |
+| interface       | m_axi port=tgt_xyz offset=slave bundle=gmem1       | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:37 in registration_accumulate_kernel, tgt_xyz              |
+| interface       | m_axi port=labels offset=slave bundle=gmem2        | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:38 in registration_accumulate_kernel, labels               |
+| interface       | m_axi port=jtj_out offset=slave bundle=gmem3       | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:39 in registration_accumulate_kernel, jtj_out              |
+| interface       | m_axi port=jtr_out offset=slave bundle=gmem3       | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:40 in registration_accumulate_kernel, jtr_out              |
+| interface       | m_axi port=used_count offset=slave bundle=gmem4    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:41 in registration_accumulate_kernel, used_count           |
+| interface       | m_axi port=dropped_count offset=slave bundle=gmem4 | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:42 in registration_accumulate_kernel, dropped_count        |
+| interface       | s_axilite port=correspondence_count bundle=control | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:44 in registration_accumulate_kernel, correspondence_count |
+| interface       | s_axilite port=kernel bundle=control               | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:45 in registration_accumulate_kernel, kernel               |
+| interface       | s_axilite port=return bundle=control               | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:46 in registration_accumulate_kernel, return               |
+| array_partition | variable=local_jtj complete dim=1                  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:54 in registration_accumulate_kernel, local_jtj            |
+| array_partition | variable=local_jtr complete dim=1                  | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:55 in registration_accumulate_kernel, local_jtr            |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:58 in registration_accumulate_kernel                       |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:59 in registration_accumulate_kernel                       |
+| pipeline        |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:74 in registration_accumulate_kernel                       |
+| loop_tripcount  | min=1 max=16384 avg=4096                           | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:75 in registration_accumulate_kernel                       |
+| array_partition | variable=J complete dim=0                          | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:100 in registration_accumulate_kernel, J                   |
+| array_partition | variable=r complete dim=0                          | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:108 in registration_accumulate_kernel, r                   |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:112 in registration_accumulate_kernel                      |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:115 in registration_accumulate_kernel                      |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:124 in registration_accumulate_kernel                      |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:126 in registration_accumulate_kernel                      |
+| unroll          |                                                    | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:129 in registration_accumulate_kernel                      |
+| pipeline        | II=1                                               | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:142 in registration_accumulate_kernel                      |
+| pipeline        | II=1                                               | cpp/semgraph_slam/hls/registration_kernel_draft.cpp:152 in registration_accumulate_kernel                      |
++-----------------+----------------------------------------------------+----------------------------------------------------------------------------------------------------------------+
+
+

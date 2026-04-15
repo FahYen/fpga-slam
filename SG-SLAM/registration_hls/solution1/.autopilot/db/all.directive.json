@@ -1,0 +1,23 @@
+[
+  {
+    "functionLabel": "",
+    "functionName": "registration_accumulate_kernel",
+    "id": 0,
+    "ifcond": "",
+    "insert_position": "",
+    "label": "",
+    "pragma": {
+      "name": "TOP",
+      "option": [
+        {
+          "name": "name",
+          "value": "registration_accumulate_kernel"
+        }
+      ]
+    },
+    "slx": false,
+    "sourceFile": "/tmp/run_registration_hls.tcl",
+    "sourceLine": 23,
+    "success": true
+  }
+]

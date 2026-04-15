@@ -1,0 +1,6 @@
+
+Family       : virtexuplus
+Device       : xcvu9p
+Package      : -flgb2104
+Speed Grade  : -2-i
+Clock Period : 4
