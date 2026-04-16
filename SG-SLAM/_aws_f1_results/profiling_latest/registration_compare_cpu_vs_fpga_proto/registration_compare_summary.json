@@ -1,0 +1,27 @@
+{
+  "cpu_input_dir": "/opt/catkin_ws/results/profiling/base_cpu",
+  "fpga_input_dir": "/opt/catkin_ws/results/profiling/fpga_proto",
+  "cpu_source_rows": 104,
+  "fpga_source_rows": 106,
+  "aligned_rows": 100,
+  "cpu_avg_ms": 10.01024237,
+  "cpu_median_ms": 9.082709999999999,
+  "cpu_p95_ms": 17.07393499999999,
+  "fpga_proto_avg_ms": 10.352068319999999,
+  "fpga_proto_median_ms": 9.516585,
+  "fpga_proto_p95_ms": 17.602384999999998,
+  "delta_avg_ms": -0.34182595000000005,
+  "delta_median_ms": -0.2881450000000001,
+  "speedup_avg_x": 1.0401844644798248,
+  "speedup_median_x": 0.9719033252610126,
+  "speedup_p95_x": 1.657493485363322,
+  "fpga_faster_frame_pct": 46.0,
+  "max_frames": 100,
+  "skip_initial_frames": 0,
+  "cpu_backend_values": [
+    "cpu"
+  ],
+  "fpga_backend_values": [
+    "fpga"
+  ]
+}

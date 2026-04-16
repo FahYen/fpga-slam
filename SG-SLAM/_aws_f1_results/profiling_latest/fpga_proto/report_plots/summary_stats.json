@@ -1,0 +1,18 @@
+{
+  "input_dir": "/opt/catkin_ws/results/profiling/fpga_proto_filtered_for_report",
+  "output_dir": "/opt/catkin_ws/results/profiling/fpga_proto/report_plots",
+  "frontend_rows": 100,
+  "odometry_rows": 100,
+  "mapping_rows": 100,
+  "stats": {
+    "frontend_avg_total_ms": 20.487537000000003,
+    "frontend_p95_total_ms": 28.587909999999997,
+    "frontend_buildgraph_avg_ms": 0.3465358000000001,
+    "frontend_registration_avg_ms": 10.352068319999999,
+    "odom_avg_wall_ms": 28.596750999999998,
+    "odom_p95_wall_ms": 38.50344,
+    "mapping_avg_loop_ms": 0.5361809399999999,
+    "mapping_p95_loop_ms": 0.8272786999999995,
+    "frontend_odom_corr": 0.11651568484017624
+  }
+}

@@ -5,6 +5,20 @@ This guide gives a practical path to:
 - run the same benchmarks you already use,
 - move the registration kernel toward real FPGA execution.
 
+Use this runbook in order. If you follow the command blocks exactly, you will get:
+- persisted benchmark/profiling artifacts on disk,
+- cpu/fpga-proto/fpga-xrt runs with the same command family,
+- explicit checks that catch fpga-xrt fallback conditions.
+
+## 0. Fast path checklist (recommended)
+
+1. Launch `f1.2xlarge` with FPGA Developer AMI and an IAM role that can read your S3 bucket.
+2. Clone repo and sync KITTI/labels from S3 into `SG-SLAM/data/...`.
+3. Build `sg-slam:noetic` and run benchmark/profile commands from Section 5.
+4. Put your `.xclbin` in `SG-SLAM/_aws_f1_results/xclbin/registration_accumulate_kernel.xclbin`.
+5. Re-run fpga mode with `SGSLAM_REG_XCLBIN` set.
+6. Run Section 5.7 checks to confirm no xrt fallback occurred.
+
 ## 1. What you can run today
 
 Current branch supports two registration backends in SG-SLAM:
@@ -135,31 +149,62 @@ which vivado
 which vitis_hls
 which v++
 
+Also verify FPGA runtime utilities and accelerator visibility:
+
+which xbutil || true
+xbutil examine | head -n 40 || true
+
+if command -v fpga-describe-local-image >/dev/null 2>&1; then
+  sudo fpga-describe-local-image -S 0 -R -H
+fi
+
 If these are missing, confirm you launched the FPGA Developer AMI.
 
-## 5. Build and run SG-SLAM benchmarks (same benchmark family)
+## 5. Build and run SG-SLAM benchmarks (F1-ready, detailed)
 
-All commands below run from SG-SLAM directory:
+All commands below start from:
 
 cd ~/fpga-slam/SG-SLAM
 
-### 5.1 Build Docker image
+### 5.1 Create persistent output folders on host
+
+mkdir -p _aws_f1_results/{bench_results,profiling,logs,xclbin}
+
+Optional: download xclbin from S3 into the expected path:
+
+aws s3 cp \
+  s3://YOUR_BUCKET/YOUR_PREFIX/registration_accumulate_kernel.xclbin \
+  _aws_f1_results/xclbin/registration_accumulate_kernel.xclbin
+
+### 5.2 Build Docker image
 
 docker build --build-arg CATKIN_JOBS=4 -t sg-slam:noetic .
 
-### 5.2 Start container
+### 5.3 Start container (with persistent artifacts)
+
+If you want to try fpga-xrt from inside container, pass FPGA device nodes when present:
+
+FPGA_DEV_FLAGS="$(for d in /dev/xdma* /dev/xclmgmt*; do [ -e "$d" ] && printf -- '--device=%s ' "$d"; done)"
 
 docker run --rm -it \
+  $FPGA_DEV_FLAGS \
   -v "$(pwd):/opt/catkin_ws/src/SG-SLAM" \
   -v sg_slam_catkin_build:/opt/catkin_ws/build \
   -v sg_slam_catkin_devel:/opt/catkin_ws/devel \
   -v sg_slam_catkin_logs:/opt/catkin_ws/logs \
+  -v "$(pwd)/_aws_f1_results:/opt/catkin_ws/results" \
+  -v "$(pwd)/_aws_f1_results/xclbin:/opt/catkin_ws/xclbin" \
   sg-slam:noetic
 
-Inside container:
+Inside container, define shared paths first:
 
 source /opt/ros/noetic/setup.bash
 cd /opt/catkin_ws
+export SGSLAM_RESULTS=/opt/catkin_ws/results
+export SGSLAM_XCLBIN=/opt/catkin_ws/xclbin/registration_accumulate_kernel.xclbin
+
+### 5.4 Build SG-SLAM with benchmark + XRT support
+
 catkin config --cmake-args \
   -DCMAKE_BUILD_TYPE=Release \
   -DUSE_SYSTEM_EIGEN3=ON \
@@ -169,70 +214,117 @@ catkin config --cmake-args \
 catkin build --no-status -j4 -p1 semgraph_slam
 source devel/setup.bash
 
-### 5.3 Run registration microbenchmark in both modes
-
 REG_BENCH_BIN="$(find build devel -type f -name benchmark_registration | head -n 1)"
 
-mkdir -p /opt/catkin_ws/bench_results/registration
+### 5.5 Run registration microbenchmark in cpu, fpga-proto, fpga-xrt
+
+mkdir -p "$SGSLAM_RESULTS/bench_results/registration" "$SGSLAM_RESULTS/logs"
 
 "$REG_BENCH_BIN" --backend cpu --frames 300 --warmup 30 --seed 570 \
   --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0 \
-  | tee /opt/catkin_ws/bench_results/registration/cpu.txt
+  2>&1 | tee "$SGSLAM_RESULTS/bench_results/registration/cpu.txt"
 
 "$REG_BENCH_BIN" --backend fpga --frames 300 --warmup 30 --seed 570 \
   --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0 \
-  | tee /opt/catkin_ws/bench_results/registration/fpga_proto.txt
+  2>&1 | tee "$SGSLAM_RESULTS/bench_results/registration/fpga_proto.txt"
 
-FPGA-xrt run (same benchmark command, add xclbin env var):
+if [ ! -f "$SGSLAM_XCLBIN" ]; then
+  echo "Missing xclbin at $SGSLAM_XCLBIN"
+  echo "Place registration_accumulate_kernel.xclbin there before fpga-xrt run."
+else
+  SGSLAM_REG_XCLBIN="$SGSLAM_XCLBIN" \
+  "$REG_BENCH_BIN" --backend fpga --frames 300 --warmup 30 --seed 570 \
+    --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0 \
+    2>&1 | tee "$SGSLAM_RESULTS/bench_results/registration/fpga_xrt.txt"
+fi
 
-SGSLAM_REG_XCLBIN=/path/to/registration_accumulate_kernel.xclbin \
-"$REG_BENCH_BIN" --backend fpga --frames 300 --warmup 30 --seed 570 \
-  --max-correspondences 12000 --max-iters 500 --kernel 0.333333 --corr-dist 3.0 \
-  | tee /opt/catkin_ws/bench_results/registration/fpga_xrt.txt
+### 5.6 Run full pipeline profiling in cpu, fpga-proto, fpga-xrt
 
-### 5.4 Run full pipeline profiling in both modes
-
-CPU run:
-
-mkdir -p /opt/catkin_ws/profiling/base_cpu
+mkdir -p "$SGSLAM_RESULTS/profiling/base_cpu"
 SGSLAM_REG_BACKEND=cpu \
 SGSLAM_PIPELINE_PROFILE=1 \
 SGSLAM_PIPELINE_PROFILE_DATASET=kitti \
-SGSLAM_PIPELINE_PROFILE_OUT=/opt/catkin_ws/profiling/base_cpu/slam_frontend_profile.csv \
-SGSLAM_ODOM_PROFILE_OUT=/opt/catkin_ws/profiling/base_cpu/slam_odometry_profile.csv \
-SGSLAM_MAPPING_PROFILE_OUT=/opt/catkin_ws/profiling/base_cpu/slam_mapping_profile.csv \
-roslaunch semgraph_slam semgraph_slam_kitti.launch
+SGSLAM_PIPELINE_PROFILE_OUT="$SGSLAM_RESULTS/profiling/base_cpu/slam_frontend_profile.csv" \
+SGSLAM_ODOM_PROFILE_OUT="$SGSLAM_RESULTS/profiling/base_cpu/slam_odometry_profile.csv" \
+SGSLAM_MAPPING_PROFILE_OUT="$SGSLAM_RESULTS/profiling/base_cpu/slam_mapping_profile.csv" \
+roslaunch semgraph_slam semgraph_slam_kitti.launch \
+  2>&1 | tee "$SGSLAM_RESULTS/logs/pipeline_cpu.log"
 
-FPGA-proto run:
-
-mkdir -p /opt/catkin_ws/profiling/fpga_proto
+mkdir -p "$SGSLAM_RESULTS/profiling/fpga_proto"
 SGSLAM_REG_BACKEND=fpga \
 SGSLAM_PIPELINE_PROFILE=1 \
 SGSLAM_PIPELINE_PROFILE_DATASET=kitti \
-SGSLAM_PIPELINE_PROFILE_OUT=/opt/catkin_ws/profiling/fpga_proto/slam_frontend_profile.csv \
-SGSLAM_ODOM_PROFILE_OUT=/opt/catkin_ws/profiling/fpga_proto/slam_odometry_profile.csv \
-SGSLAM_MAPPING_PROFILE_OUT=/opt/catkin_ws/profiling/fpga_proto/slam_mapping_profile.csv \
-roslaunch semgraph_slam semgraph_slam_kitti.launch
+SGSLAM_PIPELINE_PROFILE_OUT="$SGSLAM_RESULTS/profiling/fpga_proto/slam_frontend_profile.csv" \
+SGSLAM_ODOM_PROFILE_OUT="$SGSLAM_RESULTS/profiling/fpga_proto/slam_odometry_profile.csv" \
+SGSLAM_MAPPING_PROFILE_OUT="$SGSLAM_RESULTS/profiling/fpga_proto/slam_mapping_profile.csv" \
+roslaunch semgraph_slam semgraph_slam_kitti.launch \
+  2>&1 | tee "$SGSLAM_RESULTS/logs/pipeline_fpga_proto.log"
 
-FPGA-xrt run (same profiling command shape, add xclbin env var):
+if [ -f "$SGSLAM_XCLBIN" ]; then
+  mkdir -p "$SGSLAM_RESULTS/profiling/fpga_xrt"
+  SGSLAM_REG_BACKEND=fpga \
+  SGSLAM_REG_XCLBIN="$SGSLAM_XCLBIN" \
+  SGSLAM_PIPELINE_PROFILE=1 \
+  SGSLAM_PIPELINE_PROFILE_DATASET=kitti \
+  SGSLAM_PIPELINE_PROFILE_OUT="$SGSLAM_RESULTS/profiling/fpga_xrt/slam_frontend_profile.csv" \
+  SGSLAM_ODOM_PROFILE_OUT="$SGSLAM_RESULTS/profiling/fpga_xrt/slam_odometry_profile.csv" \
+  SGSLAM_MAPPING_PROFILE_OUT="$SGSLAM_RESULTS/profiling/fpga_xrt/slam_mapping_profile.csv" \
+  roslaunch semgraph_slam semgraph_slam_kitti.launch \
+    2>&1 | tee "$SGSLAM_RESULTS/logs/pipeline_fpga_xrt.log"
+fi
 
-mkdir -p /opt/catkin_ws/profiling/fpga_xrt
-SGSLAM_REG_BACKEND=fpga \
-SGSLAM_REG_XCLBIN=/path/to/registration_accumulate_kernel.xclbin \
-SGSLAM_PIPELINE_PROFILE=1 \
-SGSLAM_PIPELINE_PROFILE_DATASET=kitti \
-SGSLAM_PIPELINE_PROFILE_OUT=/opt/catkin_ws/profiling/fpga_xrt/slam_frontend_profile.csv \
-SGSLAM_ODOM_PROFILE_OUT=/opt/catkin_ws/profiling/fpga_xrt/slam_odometry_profile.csv \
-SGSLAM_MAPPING_PROFILE_OUT=/opt/catkin_ws/profiling/fpga_xrt/slam_mapping_profile.csv \
-roslaunch semgraph_slam semgraph_slam_kitti.launch
+### 5.7 Compare registration metrics and verify fpga-xrt did not fallback
 
-### 5.5 Compare registration metrics quickly
+for f in \
+  "$SGSLAM_RESULTS/profiling/base_cpu/slam_frontend_profile.csv" \
+  "$SGSLAM_RESULTS/profiling/fpga_proto/slam_frontend_profile.csv" \
+  "$SGSLAM_RESULTS/profiling/fpga_xrt/slam_frontend_profile.csv"; do
+  [ -f "$f" ] || continue
+  awk -F, '
+    NR==1 {for(i=1;i<=NF;i++) if($i=="registration_ms") c=i; next}
+    $1 !~ /^#/ && c>0 {n++; sum+=$c}
+    END {
+      if (n>0) printf("%s registration_avg_ms=%.6f\n", FILENAME, sum/n);
+      else printf("%s no rows\n", FILENAME);
+    }
+  ' "$f"
+done
 
-awk -F, 'BEGIN{n=0;sum=0} $1 !~ /^#/ && $1 != "frame_idx" {n++; sum+=$17} END {if(n>0) printf("cpu_registration_avg_ms=%.6f\n", sum/n); else print "no cpu rows"}' /opt/catkin_ws/profiling/base_cpu/slam_frontend_profile.csv
+if [ -f "$SGSLAM_RESULTS/logs/pipeline_fpga_xrt.log" ]; then
+  if grep -q "Falling back to fpga-proto path" "$SGSLAM_RESULTS/logs/pipeline_fpga_xrt.log"; then
+    echo "WARNING: fpga-xrt fallback detected. Inspect pipeline_fpga_xrt.log"
+  else
+    echo "No fallback string detected in pipeline_fpga_xrt.log"
+  fi
+fi
 
-awk -F, 'BEGIN{n=0;sum=0} $1 !~ /^#/ && $1 != "frame_idx" {n++; sum+=$17} END {if(n>0) printf("fpga_proto_registration_avg_ms=%.6f\n", sum/n); else print "no fpga rows"}' /opt/catkin_ws/profiling/fpga_proto/slam_frontend_profile.csv
+### 5.8 Generate registration-specific CPU vs FPGA metrics
 
-awk -F, 'BEGIN{n=0;sum=0} $1 !~ /^#/ && $1 != "frame_idx" {n++; sum+=$17} END {if(n>0) printf("fpga_xrt_registration_avg_ms=%.6f\n", sum/n); else print "no fpga-xrt rows"}' /opt/catkin_ws/profiling/fpga_xrt/slam_frontend_profile.csv
+Run from `SG-SLAM` root (inside container):
+
+python3 profiling/plot_registration_comparison.py \
+  --cpu-dir "$SGSLAM_RESULTS/profiling/base_cpu" \
+  --fpga-dir "$SGSLAM_RESULTS/profiling/fpga_proto" \
+  --fpga-label fpga_proto \
+  --output-dir "$SGSLAM_RESULTS/profiling/registration_compare_cpu_vs_fpga_proto" \
+  --max-frames 5000
+
+If fpga-xrt data exists, compare cpu vs fpga-xrt:
+
+python3 profiling/plot_registration_comparison.py \
+  --cpu-dir "$SGSLAM_RESULTS/profiling/base_cpu" \
+  --fpga-dir "$SGSLAM_RESULTS/profiling/fpga_xrt" \
+  --fpga-label fpga_xrt \
+  --output-dir "$SGSLAM_RESULTS/profiling/registration_compare_cpu_vs_fpga_xrt" \
+  --max-frames 5000
+
+Outputs:
+- registration_timeline_cpu_vs_fpga.png
+- registration_hist_cpu_vs_fpga.png
+- registration_scatter_cpu_vs_fpga.png
+- registration_speedup_timeline.png
+- registration_speedup_hist.png
+- registration_compare_summary.json
 
 ## 6. HLS synthesis flow for the registration kernel file
 
@@ -305,6 +397,8 @@ Behavior:
 2. If XRT setup fails at runtime, it falls back to fpga-proto and logs the reason.
 3. benchmark_registration and pipeline profiling command shapes remain unchanged, so comparisons stay apples-to-apples.
 
+Use Section 5.7 fallback checks to confirm whether fpga-xrt truly executed or silently downgraded to fpga-proto.
+
 ## 9. Recommended sequence
 
 1. Get baseline CPU and fpga-proto benchmark numbers on c5.
@@ -312,3 +406,39 @@ Behavior:
 3. Build SG-SLAM with ENABLE_XRT_REGISTRATION=ON.
 4. Move to f1.2xlarge and validate fpga-xrt mode with SGSLAM_REG_XCLBIN set.
 5. Re-run the exact same benchmark commands and profiling extraction commands above.
+
+## 10. Troubleshooting on F1
+
+### 10.1 fpga-xrt run prints fallback messages
+
+Common causes:
+- `SGSLAM_REG_XCLBIN` path is wrong or file is unreadable.
+- Container cannot see FPGA device nodes.
+- OpenCL platform/device is not visible from runtime environment.
+
+Checks:
+
+ls -lh "$SGSLAM_XCLBIN"
+xbutil examine | head -n 40
+grep -n "Falling back to fpga-proto path" "$SGSLAM_RESULTS/logs/pipeline_fpga_xrt.log"
+
+### 10.2 `benchmark_registration` not found
+
+Rebuild and discover binary path again:
+
+cd /opt/catkin_ws
+catkin build --no-status -j4 -p1 semgraph_slam
+REG_BENCH_BIN="$(find build devel -type f -name benchmark_registration | head -n 1)"
+echo "$REG_BENCH_BIN"
+
+### 10.3 Profiling CSV files are empty or missing
+
+Make sure these are set for each run:
+- `SGSLAM_PIPELINE_PROFILE=1`
+- `SGSLAM_PIPELINE_PROFILE_OUT=...`
+- `SGSLAM_ODOM_PROFILE_OUT=...`
+- `SGSLAM_MAPPING_PROFILE_OUT=...`
+
+Then check writable destination:
+
+ls -lah "$SGSLAM_RESULTS/profiling"
