@@ -84,7 +84,7 @@ class SegmentatorForQuantization(nn.Module):
         def backbone_run_layer(self_bb, x, layer, skips, os):
             y = layer(x)
             if y.shape[2] < x.shape[2] or y.shape[3] < x.shape[3]:
-                skips[os] = x  # dropped .detach()
+                skips[os] = x  
                 os *= 2
             return y, skips, os
 
@@ -92,7 +92,7 @@ class SegmentatorForQuantization(nn.Module):
             feats = layer(x)
             if feats.shape[-1] > x.shape[-1]:
                 os //= 2
-                feats = feats + skips[os]  # dropped .detach()
+                feats = feats + skips[os]  
             return feats, skips, os
 
         self.backbone.run_layer = types.MethodType(backbone_run_layer, self.backbone)
@@ -146,24 +146,20 @@ def build_calibration_tensors(scan_paths, sensor_cfg, max_frames, shuffle=False)
         ])
         
         proj = (proj - img_means[:, None, None]) / img_stds[:, None, None]
-        
-        # LOCKED IN: Reverted back to applying the mask. 
-        # RangeNet explicitly expects 0.0 background in its input distribution.
         proj = proj * proj_mask  
         
         tensors.append((proj.unsqueeze(0), proj_mask.unsqueeze(0))) 
 
     return tensors
 
-# Fast Finetune expects a standard PyTorch dataset
 class FastFinetuneDataset(torch.utils.data.Dataset):
     def __init__(self, tensors):
         self.tensors = tensors
     def __len__(self):
         return len(self.tensors)
     def __getitem__(self, idx):
-        # Returns (input_tensor, dummy_label)
         return self.tensors[idx][0].squeeze(0), 0
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -175,7 +171,7 @@ def main():
     parser.add_argument("--scan-root", required=True)
     parser.add_argument("--sequence", default="00")
     parser.add_argument("--num-calib-frames", type=int, default=200)
-    parser.add_argument("--num-test-frames", type=int, default=50)
+    parser.add_argument("--num-test-frames", type=int, default=200)
     parser.add_argument("--output-dir", default=None)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--quant-mode", default="calib",
@@ -213,7 +209,7 @@ def main():
         sys.exit(1)
 
     # ------------------------------------------------------------------
-    # VITIS AI QUANTIZATION WORKFLOW
+    # PHASE 1 & 3: CALIB AND TEST
     # ------------------------------------------------------------------
     if args.quant_mode in ["calib", "test"]:
         quantizer = torch_quantizer(
@@ -271,7 +267,7 @@ def main():
             quantizer.export_xmodel(output_dir=str(output_dir))
 
     # ------------------------------------------------------------------
-    # FAST FINETUNE (AdaQuant) TO CRUSH THE 9% DROP
+    # PHASE 2: FAST FINETUNE (AdaQuant)
     # ------------------------------------------------------------------
     elif args.quant_mode == "fast_finetune":
         try:
@@ -283,9 +279,9 @@ def main():
         print(f"\n[PHASE 2] Running Fast Finetuning to align DarkNet skip connections...")
         calib_tensors = build_calibration_tensors(scan_paths, sensor_cfg, args.num_calib_frames, shuffle=True)
         
-        # Batch size 2 keeps VRAM usage safe for 64x2048 LiDAR tensors
+        # Batch size 1 keeps VRAM usage safe for massive LiDAR tensors
         dataset = FastFinetuneDataset(calib_tensors)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 
         processor = AdvancedQuantProcessor(
             model,
