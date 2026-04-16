@@ -39,6 +39,7 @@ import argparse
 import os
 import sys
 import types
+import random
 from pathlib import Path
 
 import numpy as np
@@ -132,7 +133,7 @@ def load_yaml(path):
         return yaml.safe_load(f)
 
 
-def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
+def build_calibration_tensors(scan_paths, sensor_cfg, max_frames, shuffle=False):
     """Load KITTI scans and produce normalized 5-channel projected tensors."""
     img_means = torch.tensor(sensor_cfg["img_means"], dtype=torch.float32)
     img_stds = torch.tensor(sensor_cfg["img_stds"], dtype=torch.float32)
@@ -140,8 +141,14 @@ def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
     H = sensor_cfg["img_prop"]["height"]
     W = sensor_cfg["img_prop"]["width"]
 
+    # Optional shuffle to prevent moving-average skew from sequential frames
+    paths_to_use = list(scan_paths)
+    if shuffle:
+        random.seed(42) # Keep it deterministic
+        random.shuffle(paths_to_use)
+
     tensors = []
-    for sp in scan_paths[:max_frames]:
+    for sp in paths_to_use[:max_frames]:
         scan = LaserScan(
             project=True, H=H, W=W,
             fov_up=sensor_cfg["fov_up"],
@@ -159,10 +166,14 @@ def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
             proj_xyz.permute(2, 0, 1),
             proj_remission.unsqueeze(0),
         ])
+        
+        # Apply normalization
         proj = (proj - img_means[:, None, None]) / img_stds[:, None, None]
-        proj = proj * proj_mask
-
-        # FIX: Also return the projection mask so we can filter out empty space during accuracy evaluation
+        
+        # Zeroing the mask out *after* normalization forces a massive, artificial 
+        # spike at 0.0 in the data distribution, which skews the quantizer's bin allocations.
+        
+        # Return the tensor and the mask so we can still filter empty space during accuracy evaluation
         tensors.append((proj.unsqueeze(0), proj_mask.unsqueeze(0))) 
 
     return tensors
@@ -236,11 +247,10 @@ def main():
     print("  Model wrapped for quantization (no softmax, no .detach())")
 
     # ------------------------------------------------------------------
-    # Create dummy input for quantizer graph tracing
+    # Create dummy input for quantize570r graph tracing
     # ------------------------------------------------------------------
-    # FIX: Use a real LiDAR frame to initialize the quantizer instead of random noise, 
-    # which prevents skewed node bindings/activation scales during tracing
-    dummy_scan = build_calibration_tensors(scan_paths, sensor_cfg, 1)[0][0]
+    # Use a real LiDAR frame to initialize the quantizer instead of random noise
+    dummy_scan = build_calibration_tensors(scan_paths, sensor_cfg, 1, shuffle=False)[0][0]
     dummy_input = dummy_scan.clone().to(device)
 
     # ------------------------------------------------------------------
@@ -275,15 +285,16 @@ def main():
     # ------------------------------------------------------------------
     if args.quant_mode == "calib":
         print(f"\nLoading {args.num_calib_frames} calibration frames ...")
+        # FIX: Added shuffle=True to ensure diverse scenes for moving averages
         calib_tensors = build_calibration_tensors(
-            scan_paths, sensor_cfg, args.num_calib_frames
+            scan_paths, sensor_cfg, args.num_calib_frames, shuffle=True
         )
         print(f"  Loaded {len(calib_tensors)} frames")
 
         print("\nRunning calibration ...")
         quant_model.eval()
         with torch.no_grad():
-            # FIX: Unpack the tuple to get just the tensor (ignoring the mask for calibration passes)
+            # Unpack the tuple to get just the tensor (ignoring the mask for calibration passes)
             for i, (x, _) in enumerate(calib_tensors):
                 x = x.to(device)
                 _ = quant_model(x)
@@ -297,28 +308,27 @@ def main():
 
     elif args.quant_mode == "test":
         print(f"\nLoading {args.num_test_frames} test frames ...")
+        # Keep test frames sequential for standard benchmarking
         test_tensors = build_calibration_tensors(
-            scan_paths, sensor_cfg, args.num_test_frames
+            scan_paths, sensor_cfg, args.num_test_frames, shuffle=False
         )
 
         # Also run FP32 for comparison
         print("Running FP32 baseline ...")
         fp32_preds = []
-        masks = [] # FIX: List to store masks for evaluation
+        masks = []
         model.eval()
         with torch.no_grad():
-            # FIX: Unpack the tuple to get both tensor and mask
             for x, mask in test_tensors:
                 x = x.to(device)
                 logits = model(x)
                 fp32_preds.append(logits.argmax(dim=1).cpu().numpy())
-                masks.append(mask.cpu().numpy().astype(bool)) # FIX: Save boolean mask
+                masks.append(mask.cpu().numpy().astype(bool)) 
 
         print("Running INT8 quantized ...")
         int8_preds = []
         quant_model.eval()
         with torch.no_grad():
-            # FIX: Unpack the tuple
             for x, _ in test_tensors:
                 x = x.to(device)
                 logits = quant_model(x)
@@ -327,7 +337,7 @@ def main():
         # Compare
         total_pixels = 0
         total_mismatch = 0
-        # FIX: Iterate with masks to filter out invalid pixels in the projected LiDAR frame
+        # Iterate with masks to filter out invalid pixels in the projected LiDAR frame
         for fp32_p, int8_p, mask in zip(fp32_preds, int8_preds, masks):
             fp32_valid = fp32_p[mask]
             int8_valid = int8_p[mask]
@@ -341,7 +351,7 @@ def main():
         print(f"  Mismatch rate:    {mismatch_pct:.3f}%")
 
         if mismatch_pct > 5.0:
-            print("  WARNING: >5% mismatch — consider quantization-aware training")
+            print("  WARNING: >5% mismatch — consider quantization-aware training or AdaQuant")
         elif mismatch_pct > 1.0:
             print("  ACCEPTABLE: 1-5% mismatch — typical for PTQ")
         else:
