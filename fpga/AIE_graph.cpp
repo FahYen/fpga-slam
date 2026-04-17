@@ -159,9 +159,10 @@ public:
     }
 };
 
+RangeNetGraph my_graph;
+
 // Simulation Wrapper
 #if defined(__X86SIM__) || defined(__AIESIM__)
-RangeNetGraph my_graph;
 int main() {
     my_graph.init();
     my_graph.run(1);
