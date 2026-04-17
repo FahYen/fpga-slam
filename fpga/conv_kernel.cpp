@@ -1,5 +1,5 @@
 // =============================================================================
-// conv_kernel.h — AIE-ML INT8 convolution kernels for RangeNet DarkNet53
+// conv_kernel.cpp / conv2d_core.h — AIE-ML INT8 convolution kernels
 //
 // Target: AMD Versal AI Edge VE2802 (AIE2P / AIE-ML)
 // Uses:   aie::mmul<4,8,4, int8, int8> for hardware-optimal INT8 MAC
@@ -33,6 +33,9 @@
 #include <aie_api/aie.hpp>
 #include <aie_api/aie_adf.hpp>
 #include <adf.h>
+#include <cstdint>
+
+using namespace adf; // Add namespace here as well to match signatures
 
 // ---- Tile geometry (tuned for AIE-ML 64 KB data memory) -------------------
 //
@@ -173,8 +176,8 @@ inline void requant_row(
     const int32_t* __restrict acc,       // [OC_BLOCK] accumulators for one position
     const int32_t* __restrict bias,      // [OC_BLOCK]
     const int32_t* __restrict mult,      // [OC_BLOCK]
-    const int8_t*  __restrict shift,     // [OC_BLOCK]
-    int8_t*        __restrict out        // [OC_BLOCK]
+    const int8_t* __restrict shift,     // [OC_BLOCK]
+    int8_t* __restrict out        // [OC_BLOCK]
 ) {
     constexpr int HALF = 16;  // int32 vector width on AIE-ML
 
@@ -245,17 +248,17 @@ inline void requant_row(
 void conv2d_3x3_tile(
     input_buffer<int8, extents<IN_BUF_3x3>>&    in_act,
     input_buffer<int8, extents<WT_BUF_3x3>>&    in_wt,
-    input_buffer<int32, extents<OC_BLOCK>>&      in_bias,
-    input_buffer<int32, extents<OC_BLOCK>>&      in_requant_mult,
-    input_buffer<int8, extents<OC_BLOCK>>&       in_requant_shift,
-    output_buffer<int8, extents<OUT_BUF>>&       out_act
+    input_buffer<int32, extents<OC_BLOCK>>&     in_bias,
+    input_buffer<int32, extents<OC_BLOCK>>&     in_requant_mult,
+    input_buffer<int8, extents<OC_BLOCK>>&      in_requant_shift,
+    output_buffer<int8, extents<OUT_BUF>>&      out_act
 ) {
-    const int8_t*  __restrict act   = (const int8_t*)in_act.data();
-    const int8_t*  __restrict wt    = (const int8_t*)in_wt.data();
+    const int8_t* __restrict act   = (const int8_t*)in_act.data();
+    const int8_t* __restrict wt    = (const int8_t*)in_wt.data();
     const int32_t* __restrict bias  = (const int32_t*)in_bias.data();
     const int32_t* __restrict rq_m  = (const int32_t*)in_requant_mult.data();
-    const int8_t*  __restrict rq_s  = (const int8_t*)in_requant_shift.data();
-    int8_t*        __restrict out   = (int8_t*)out_act.data();
+    const int8_t* __restrict rq_s  = (const int8_t*)in_requant_shift.data();
+    int8_t* __restrict out   = (int8_t*)out_act.data();
 
     constexpr int K_DIM = IC_BLOCK * 9;    // 288
     constexpr int N_DIM = OC_BLOCK;         // 32
@@ -312,17 +315,17 @@ void conv2d_3x3_tile(
 void conv2d_1x1_tile(
     input_buffer<int8, extents<IN_BUF_1x1>>&    in_act,
     input_buffer<int8, extents<WT_BUF_1x1>>&    in_wt,
-    input_buffer<int32, extents<OC_BLOCK>>&      in_bias,
-    input_buffer<int32, extents<OC_BLOCK>>&      in_requant_mult,
-    input_buffer<int8, extents<OC_BLOCK>>&       in_requant_shift,
-    output_buffer<int8, extents<OUT_BUF>>&       out_act
+    input_buffer<int32, extents<OC_BLOCK>>&     in_bias,
+    input_buffer<int32, extents<OC_BLOCK>>&     in_requant_mult,
+    input_buffer<int8, extents<OC_BLOCK>>&      in_requant_shift,
+    output_buffer<int8, extents<OUT_BUF>>&      out_act
 ) {
-    const int8_t*  __restrict act   = (const int8_t*)in_act.data();
-    const int8_t*  __restrict wt    = (const int8_t*)in_wt.data();
+    const int8_t* __restrict act   = (const int8_t*)in_act.data();
+    const int8_t* __restrict wt    = (const int8_t*)in_wt.data();
     const int32_t* __restrict bias  = (const int32_t*)in_bias.data();
     const int32_t* __restrict rq_m  = (const int32_t*)in_requant_mult.data();
-    const int8_t*  __restrict rq_s  = (const int8_t*)in_requant_shift.data();
-    int8_t*        __restrict out   = (int8_t*)out_act.data();
+    const int8_t* __restrict rq_s  = (const int8_t*)in_requant_shift.data();
+    int8_t* __restrict out   = (int8_t*)out_act.data();
 
     constexpr int K_DIM = IC_BLOCK;   // 32
     constexpr int N_DIM = OC_BLOCK;   // 32
@@ -365,7 +368,7 @@ void elem_add_tile(
 ) {
     const int8_t* __restrict a = (const int8_t*)in_a.data();
     const int8_t* __restrict b = (const int8_t*)in_b.data();
-    int8_t*       __restrict c = (int8_t*)out_sum.data();
+    int8_t* __restrict c = (int8_t*)out_sum.data();
 
     constexpr int VEC_LEN  = 32;
     constexpr int NUM_VECS = OUT_BUF / VEC_LEN;  // 256
