@@ -82,9 +82,12 @@ def transpose_conv_weight(w_i8, op_type, kernel_shape):
             w_flat = w_i8.reshape(OC, IC)
             w_gemm = w_flat.T.copy()  # [IC, OC]
         else:
-            # 3×3 or other: [OC, IC, kH, kW] → [OC, IC*kH*kW] → transpose → [IC*kH*kW, OC]
+            # 3×3 or other: reorder K dimension to match im2col in conv_kernel.cpp
+            # im2col produces K = (kh, kw, ic) — spatial outer, channel inner
+            # So: [OC, IC, kH, kW] → [OC, kH, kW, IC] → [OC, kH*kW*IC] → T → [K, OC]
             K = IC * kH * kW
-            w_flat = w_i8.reshape(OC, K)
+            w_reorder = w_i8.transpose(0, 2, 3, 1)  # [OC, kH, kW, IC]
+            w_flat = w_reorder.reshape(OC, K)
             w_gemm = w_flat.T.copy()  # [K, OC]
 
     elif op_type == "ConvTranspose":
