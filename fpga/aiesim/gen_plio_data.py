@@ -100,6 +100,36 @@ def extract_tile_3x3(act_nchw, oh_start, ow_start, ic_start, ic_block):
     return tile_hwc
 
 
+def extract_tile_3x3_s2(act_nchw, oh_start, ow_start, ic_start, ic_block):
+    """Extract input tile for 3×3 conv with stride=(1,2) and convert to HWC.
+
+    act_nchw: [1, IC, H, W]  int8
+    Returns: [IN_H_3x3, IN_W_3x3_S2, ic_block] int8  (HWC layout)
+      where IN_W_3x3_S2 = TILE_W * 2 + 2 = 66
+    """
+    _, IC, H, W = act_nchw.shape
+
+    # pad=1 for both h and w
+    ih_start = oh_start - 1
+    # stride_w=2: output col ow maps to input center ow*2
+    iw_start = ow_start * 2 - 1
+
+    in_h = TILE_H + 2       # 10
+    in_w = TILE_W * 2 + 2   # 66
+
+    tile = np.zeros((1, ic_block, in_h, in_w), dtype=np.int8)
+    for ic in range(min(ic_block, IC - ic_start)):
+        for h in range(in_h):
+            for w in range(in_w):
+                ih = ih_start + h
+                iw = iw_start + w
+                if 0 <= ih < H and 0 <= iw < W:
+                    tile[0, ic, h, w] = act_nchw[0, ic_start + ic, ih, iw]
+
+    tile_hwc = tile[0].transpose(1, 2, 0)  # [C, H, W] → [H, W, C]
+    return tile_hwc
+
+
 def extract_tile_1x1(act_nchw, oh_start, ow_start, ic_start, ic_block):
     """Extract input tile for 1×1 conv (no halo) and convert to HWC.
 
@@ -253,9 +283,26 @@ def main():
     # Extract tiles
     os.makedirs(args.output_dir, exist_ok=True)
 
-    kernel_type = "3x3" if is_3x3 else "1x1"
+    # Detect stride from input/output shapes
+    stride_h = input_shape[2] // output_shape[2] if output_shape[2] > 0 else 1
+    stride_w = input_shape[3] // output_shape[3] if output_shape[3] > 0 else 1
+    is_s2 = (stride_h == 1 and stride_w == 2)
+    print(f"  Stride: ({stride_h},{stride_w})")
 
-    if is_3x3:
+    if is_3x3 and is_s2:
+        kernel_type = "3x3s2"
+    elif is_3x3:
+        kernel_type = "3x3"
+    else:
+        kernel_type = "1x1"
+
+    if kernel_type == "3x3s2":
+        act_tile = extract_tile_3x3_s2(
+            input_data, args.tile_oh, args.tile_ow,
+            args.ic_start, IC_BLOCK
+        )
+        K_per_ic = 9
+    elif kernel_type == "3x3":
         act_tile = extract_tile_3x3(
             input_data, args.tile_oh, args.tile_ow,
             args.ic_start, IC_BLOCK
@@ -319,18 +366,30 @@ def main():
     write_plio_txt(f"{args.output_dir}/rq_shift_{kernel_type}.txt", rq_shift_block, "int8", plio_bits=32)
     write_plio_txt(f"{args.output_dir}/expected_out.txt", out_tile, "int8", plio_bits=64)
 
-    # Generate dummy PLIO files for unused kernels
-    # (the graph instantiates all three kernels, so all PLIOs need files)
-    unused_type = "1x1" if is_3x3 else "3x3"
-    in_buf_unused = (TILE_H * TILE_W * IC_BLOCK) if is_3x3 else ((TILE_H+2) * (TILE_W+2) * IC_BLOCK)
-    wt_buf_unused = (IC_BLOCK * OC_BLOCK) if is_3x3 else (IC_BLOCK * 9 * OC_BLOCK)
-    print(f"\n  Writing dummy files for unused {unused_type} and elem_add kernels...")
-    write_dummy_plio(f"{args.output_dir}/act_{unused_type}.txt", in_buf_unused, "int8", 64)
-    write_dummy_plio(f"{args.output_dir}/wt_{unused_type}.txt", wt_buf_unused, "int8", 64)
-    write_dummy_plio(f"{args.output_dir}/bias_{unused_type}.txt", OC_BLOCK, "int32", 32)
-    write_dummy_plio(f"{args.output_dir}/rq_mult_{unused_type}.txt", OC_BLOCK, "int32", 32)
-    write_dummy_plio(f"{args.output_dir}/rq_shift_{unused_type}.txt", OC_BLOCK, "int8", 32)
-    out_buf = TILE_H * TILE_W * OC_BLOCK
+    # Generate dummy PLIO files for all unused kernels
+    # (the graph instantiates all 4 kernel types, so all PLIOs need files)
+    IN_BUF_3x3    = (TILE_H+2) * (TILE_W+2) * IC_BLOCK       # 10880
+    IN_BUF_3x3_S2 = (TILE_H+2) * (TILE_W*2+2) * IC_BLOCK     # 21120
+    IN_BUF_1x1    = TILE_H * TILE_W * IC_BLOCK                # 8192
+    WT_BUF_3x3_   = IC_BLOCK * 9 * OC_BLOCK                   # 9216
+    WT_BUF_1x1_   = IC_BLOCK * OC_BLOCK                       # 1024
+    out_buf       = TILE_H * TILE_W * OC_BLOCK                 # 8192
+
+    # Map of kernel_tag -> (act_buf_size, wt_buf_size)
+    all_types = {
+        "3x3":   (IN_BUF_3x3,    WT_BUF_3x3_),
+        "3x3s2": (IN_BUF_3x3_S2, WT_BUF_3x3_),
+        "1x1":   (IN_BUF_1x1,    WT_BUF_1x1_),
+    }
+    unused = [k for k in all_types if k != kernel_type]
+    print(f"\n  Writing dummy files for unused kernels: {unused} + elem_add...")
+    for ut in unused:
+        ab, wb = all_types[ut]
+        write_dummy_plio(f"{args.output_dir}/act_{ut}.txt", ab, "int8", 64)
+        write_dummy_plio(f"{args.output_dir}/wt_{ut}.txt", wb, "int8", 64)
+        write_dummy_plio(f"{args.output_dir}/bias_{ut}.txt", OC_BLOCK, "int32", 32)
+        write_dummy_plio(f"{args.output_dir}/rq_mult_{ut}.txt", OC_BLOCK, "int32", 32)
+        write_dummy_plio(f"{args.output_dir}/rq_shift_{ut}.txt", OC_BLOCK, "int8", 32)
     write_dummy_plio(f"{args.output_dir}/add_a.txt", out_buf, "int8", 64)
     write_dummy_plio(f"{args.output_dir}/add_b.txt", out_buf, "int8", 64)
 
