@@ -12,16 +12,29 @@ inline void gemm_int8(const int8_t* __restrict A, const int8_t* __restrict B, in
         for (int nt = 0; nt < N_TOTAL / MMUL_N; ++nt) {
             aie::mmul<MMUL_M, MMUL_K, MMUL_N, int8, int8> mm;
             for (int kt = 0; kt < K_TOTAL / MMUL_K; ++kt) {
-                aie::vector<int8, 32> va;
-                for (int m = 0; m < 4; ++m) va.insert(m, aie::load_v<8>(&A[(mt*4+m)*K_TOTAL + kt*8]));
-                aie::vector<int8, 32> vb;
-                for (int k = 0; k < 8; ++k) vb.insert(k, aie::load_v<4>(&B[(kt*8+k)*N_TOTAL + nt*4]));
-                
+                // Build A sub-tile [4×8] and B sub-tile [8×4] in local arrays
+                alignas(32) int8_t a_tile[32];
+                alignas(32) int8_t b_tile[32];
+                for (int m = 0; m < 4; ++m)
+                    for (int k = 0; k < 8; ++k)
+                        a_tile[m * 8 + k] = A[(mt*4+m)*K_TOTAL + kt*8 + k];
+                for (int k = 0; k < 8; ++k)
+                    for (int n = 0; n < 4; ++n)
+                        b_tile[k * 4 + n] = B[(kt*8+k)*N_TOTAL + nt*4 + n];
+
+                aie::vector<int8, 32> va = aie::load_v<32>(a_tile);
+                aie::vector<int8, 32> vb = aie::load_v<32>(b_tile);
+
                 if (kt == 0) mm.mul(va, vb);
                 else mm.mac(va, vb);
             }
+            // Extract results: mmul produces M*N = 16 int32 values
             aie::vector<int32, 16> res = mm.to_vector<int32>();
-            for (int m = 0; m < 4; ++m) aie::store_v(&C[(mt*4+m)*N_TOTAL + nt*4], res.extract<4>(m));
+            alignas(32) int32_t res_buf[16];
+            aie::store_v(res_buf, res);
+            for (int m = 0; m < 4; ++m)
+                for (int n = 0; n < 4; ++n)
+                    C[(mt*4+m)*N_TOTAL + nt*4 + n] = res_buf[m * 4 + n];
         }
     }
 }
@@ -29,18 +42,17 @@ inline void gemm_int8(const int8_t* __restrict A, const int8_t* __restrict B, in
 // ---- Requantization Logic ----
 template <bool HAS_LEAKY_RELU>
 inline void requant_row(const int32_t* acc, const int32_t* bias, const int32_t* mult, const int8_t* shift, int8_t* out) {
-    for (int half = 0; half < 2; ++half) {
-        int o = half * 16;
-        aie::vector<int32, 16> v_acc = aie::add(aie::load_v<16>(&acc[o]), aie::load_v<16>(&bias[o]));
-        aie::vector<int32, 16> v_m = aie::load_v<16>(&mult[o]);
-        
-        for (int i = 0; i < 16; ++i) {
-            int64_t p = (int64_t)v_acc[i] * v_m[i];
-            int s = shift[o + i];
-            int32_t val = (int32_t)((p + ((int64_t)1 << (s - 1))) >> s);
-            if constexpr (HAS_LEAKY_RELU) if (val < 0) val = (val * 13) >> 7;
-            out[o + i] = (int8_t)aie::utils::clamp<int32_t>(val, -128, 127);
+    for (int ch = 0; ch < OC_BLOCK; ++ch) {
+        int32_t a = acc[ch] + bias[ch];
+        int64_t p = (int64_t)a * (int64_t)mult[ch];
+        int s = (int)shift[ch];
+        int32_t val = (int32_t)((p + ((int64_t)1 << (s - 1))) >> s);
+        if constexpr (HAS_LEAKY_RELU) {
+            if (val < 0) val = (val * 13) >> 7;
         }
+        if (val > 127) val = 127;
+        if (val < -128) val = -128;
+        out[ch] = (int8_t)val;
     }
 }
 
