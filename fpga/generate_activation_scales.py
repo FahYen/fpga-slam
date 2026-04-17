@@ -323,7 +323,8 @@ def main():
     print(f"  Scale method: {args.method}" +
           (f" (p={args.percentile})" if args.method == "percentile" else ""))
 
-    # ---- Pre-build the batched "extra-output" ONNX files once, reuse across frames
+    # ---- Memory-friendly: process ONE batch at a time across all frames
+    # This avoids holding multiple ~150 MB ORT sessions in RAM simultaneously.
     os.makedirs(args.tmp_dir, exist_ok=True)
 
     existing_outputs = {o.name for o in model.graph.output}
@@ -331,52 +332,56 @@ def main():
     batches = [extras[i:i + args.batch_size] for i in range(0, len(extras), args.batch_size)]
     n_batches = len(batches) + 1  # +1 for the graph's own outputs
 
-    batch_sess = []
+    # Preprocess all scans once (each ~2.5 MB). If OOM here, lower --num-frames.
+    print("\nPreprocessing calibration frames ...")
+    frames = []
+    for i, sp in enumerate(scan_paths):
+        frames.append(preprocess_scan(sp, sensor_cfg))
+        if (i + 1) % 50 == 0 or (i + 1) == len(scan_paths):
+            print(f"  {i + 1}/{len(scan_paths)}")
+
+    # ---- Run each batch sequentially, releasing before opening the next
+    print("\nRunning calibration ...")
     for bi, batch in enumerate(batches):
         m = make_model_with_extra_outputs(model, batch)
         p = os.path.join(args.tmp_dir, f"_b{bi}.onnx")
         onnx.save(m, p)
         del m
-        sess = ort.InferenceSession(p, providers=["CPUExecutionProvider"])
-        batch_sess.append((sess, batch, p))
-    sess_final = ort.InferenceSession(args.fused_onnx, providers=["CPUExecutionProvider"])
-    final_names = [o.name for o in sess_final.get_outputs()]
-
-    # ---- Iterate calibration frames
-    print("\nRunning calibration ...")
-    input_name = batch_sess[0][0].get_inputs()[0].name if batch_sess else sess_final.get_inputs()[0].name
-
-    for fi, scan_path in enumerate(scan_paths):
-        x = preprocess_scan(scan_path, sensor_cfg)
-
-        for sess, batch, _ in batch_sess:
-            # Only request names the session actually exposes (some may be intermediate outputs only)
-            avail = {o.name for o in sess.get_outputs()}
-            req = [n for n in batch if n in avail]
-            if not req:
-                continue
-            outs = sess.run(req, {input_name: x})
-            for n, arr in zip(req, outs):
-                acc.update(n, arr)
-            del outs
-            gc.collect()
-
-        # Final outputs (present in the graph already)
-        outs = sess_final.run(final_names, {input_name: x})
-        for n, arr in zip(final_names, outs):
-            acc.update(n, arr)  # no-op if name wasn't tracked
-        del outs
         gc.collect()
 
-        if (fi + 1) % 10 == 0 or (fi + 1) == len(scan_paths):
-            print(f"  Frame {fi + 1}/{len(scan_paths)}")
+        sess = ort.InferenceSession(p, providers=["CPUExecutionProvider"])
+        avail = {o.name for o in sess.get_outputs()}
+        req = [n for n in batch if n in avail]
+        input_name = sess.get_inputs()[0].name
 
-    # ---- Clean up temp ONNXs
-    for _, _, p in batch_sess:
+        if req:
+            for x in frames:
+                outs = sess.run(req, {input_name: x})
+                for n, arr in zip(req, outs):
+                    acc.update(n, arr)
+                del outs
+
+        del sess
+        gc.collect()
         try:
             os.remove(p)
         except OSError:
             pass
+        print(f"  Batch {bi + 1}/{n_batches} done")
+
+    # ---- Final graph outputs (original model, no extras)
+    sess_final = ort.InferenceSession(args.fused_onnx, providers=["CPUExecutionProvider"])
+    final_names = [o.name for o in sess_final.get_outputs()]
+    input_name = sess_final.get_inputs()[0].name
+    for x in frames:
+        outs = sess_final.run(final_names, {input_name: x})
+        for n, arr in zip(final_names, outs):
+            acc.update(n, arr)
+        del outs
+    del sess_final
+    gc.collect()
+    print(f"  Batch {n_batches}/{n_batches} done")
+
     try:
         os.rmdir(args.tmp_dir)
     except OSError:
