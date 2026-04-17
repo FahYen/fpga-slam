@@ -87,6 +87,37 @@ void conv2d_3x3_tile(
     }
 }
 
+void conv2d_3x3_s2_tile(
+    input_buffer<int8, extents<IN_BUF_3x3_S2>>& in_act,
+    input_buffer<int8, extents<WT_BUF_3x3>>& in_wt,
+    input_buffer<int32, extents<OC_BLOCK>>& in_bias,
+    input_buffer<int32, extents<OC_BLOCK>>& in_requant_mult,
+    input_buffer<int8, extents<OC_BLOCK>>& in_requant_shift,
+    output_buffer<int8, extents<OUT_BUF>>& out_act
+) {
+    auto p_act = in_act.data(); auto p_wt = in_wt.data();
+    auto p_bias = in_bias.data(); auto p_mult = in_requant_mult.data();
+    auto p_shift = in_requant_shift.data(); auto p_out = out_act.data();
+
+    alignas(32) int8_t col_sub[TILE_W * IC_BLOCK * 9];
+    alignas(32) int32_t acc_sub[TILE_W * OC_BLOCK];
+
+    for (int r = 0; r < TILE_H; ++r) {
+        // im2col with stride_w=2: output col w reads input col w*2
+        for (int w = 0; w < TILE_W; ++w) {
+            for (int kh = 0; kh < 3; ++kh) {
+                for (int kw = 0; kw < 3; ++kw) {
+                    aie::store_v(&col_sub[(w*9 + kh*3 + kw)*32],
+                                 aie::load_v<32>(&p_act[((r+kh)*IN_W_3x3_S2 + (w*2+kw))*32]));
+                }
+            }
+        }
+        gemm_int8<TILE_W, IC_BLOCK*9, OC_BLOCK>(col_sub, p_wt, acc_sub);
+        for (int w = 0; w < TILE_W; ++w)
+            requant_row<true>(&acc_sub[w*32], p_bias, p_mult, p_shift, &p_out[(r*TILE_W+w)*32]);
+    }
+}
+
 void conv2d_1x1_tile(
     input_buffer<int8, extents<IN_BUF_1x1>>& in_act,
     input_buffer<int8, extents<WT_BUF_1x1>>& in_wt,
