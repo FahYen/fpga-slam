@@ -39,6 +39,7 @@ import argparse
 import os
 import sys
 import types
+import random
 from pathlib import Path
 
 import numpy as np
@@ -47,23 +48,19 @@ import torch.nn as nn
 import yaml
 
 # ---------------------------------------------------------------------------
-# Resolve RangeNet import paths — the repo layout requires this
+# Resolve RangeNet import paths
 # ---------------------------------------------------------------------------
-SCRIPT_DIR = Path(__file__).resolve().parent          # fpga/vitis/
-FPGA_DIR = SCRIPT_DIR.parent                          # fpga/
-ROOT_DIR = FPGA_DIR.parent                            # repo root
+SCRIPT_DIR = Path(__file__).resolve().parent
+FPGA_DIR = SCRIPT_DIR.parent
+ROOT_DIR = FPGA_DIR.parent
 RANGENET_TRAIN = ROOT_DIR / "RangeNet" / "train"
 
-# RangeNet expects TRAIN_PATH on sys.path via its __init__.py
 sys.path.insert(0, str(RANGENET_TRAIN))
 sys.path.insert(0, str(RANGENET_TRAIN / "tasks" / "semantic"))
 
 from common.laserscan import LaserScan
 from tasks.semantic.modules.segmentator import Segmentator
 
-# Fix RangeNet's relative TRAIN_PATH to absolute.
-# segmentator.py does `import __init__ as booger`, so we must patch
-# the cached `__init__` module in sys.modules, not just `tasks.semantic`.
 _train_path_abs = str(RANGENET_TRAIN)
 for _mod_key in list(sys.modules.keys()):
     mod = sys.modules[_mod_key]
@@ -76,32 +73,18 @@ for _mod_key in list(sys.modules.keys()):
 # ---------------------------------------------------------------------------
 
 class SegmentatorForQuantization(nn.Module):
-    """Thin wrapper around Segmentator that makes it Vitis-AI-friendly.
-
-    Changes vs the original forward():
-      - Removes F.softmax (DPU doesn't support it; argmax on logits is equivalent).
-      - Removes .detach() on skip connections (breaks quantizer graph tracing).
-      - Removes CRF post-processing (not relevant for DPU deployment).
-      - Removes Dropout (identity at eval, but can confuse the tracer).
-      - Accepts a single tensor (no mask arg) since DPU graphs are single-input.
-    """
-
     def __init__(self, segmentator):
         super().__init__()
         self.backbone = segmentator.backbone
         self.decoder = segmentator.decoder
         self.head = segmentator.head
-
-        # Patch backbone and decoder: replace run_layer to remove .detach()
         self._patch_skip_detach()
 
     def _patch_skip_detach(self):
-        """Monkey-patch backbone.run_layer and decoder.run_layer to drop .detach()."""
-
         def backbone_run_layer(self_bb, x, layer, skips, os):
             y = layer(x)
             if y.shape[2] < x.shape[2] or y.shape[3] < x.shape[3]:
-                skips[os] = x  # no .detach()
+                skips[os] = x  
                 os *= 2
             return y, skips, os
 
@@ -109,7 +92,7 @@ class SegmentatorForQuantization(nn.Module):
             feats = layer(x)
             if feats.shape[-1] > x.shape[-1]:
                 os //= 2
-                feats = feats + skips[os]  # no .detach()
+                feats = feats + skips[os]  
             return feats, skips, os
 
         self.backbone.run_layer = types.MethodType(backbone_run_layer, self.backbone)
@@ -119,7 +102,6 @@ class SegmentatorForQuantization(nn.Module):
         y, skips = self.backbone(x)
         y = self.decoder(y, skips)
         y = self.head(y)
-        # Return raw logits — no softmax
         return y
 
 
@@ -131,17 +113,20 @@ def load_yaml(path):
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-
-def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
-    """Load KITTI scans and produce normalized 5-channel projected tensors."""
+def build_calibration_tensors(scan_paths, sensor_cfg, max_frames, shuffle=False):
     img_means = torch.tensor(sensor_cfg["img_means"], dtype=torch.float32)
     img_stds = torch.tensor(sensor_cfg["img_stds"], dtype=torch.float32)
 
     H = sensor_cfg["img_prop"]["height"]
     W = sensor_cfg["img_prop"]["width"]
 
+    paths_to_use = list(scan_paths)
+    if shuffle:
+        random.seed(42) 
+        random.shuffle(paths_to_use)
+
     tensors = []
-    for sp in scan_paths[:max_frames]:
+    for sp in paths_to_use[:max_frames]:
         scan = LaserScan(
             project=True, H=H, W=W,
             fov_up=sensor_cfg["fov_up"],
@@ -159,13 +144,21 @@ def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
             proj_xyz.permute(2, 0, 1),
             proj_remission.unsqueeze(0),
         ])
+        
         proj = (proj - img_means[:, None, None]) / img_stds[:, None, None]
-        proj = proj * proj_mask
-
-        # FIX: Also return the projection mask so we can filter out empty space during accuracy evaluation
+        proj = proj * proj_mask  
+        
         tensors.append((proj.unsqueeze(0), proj_mask.unsqueeze(0))) 
 
     return tensors
+
+class FastFinetuneDataset(torch.utils.data.Dataset):
+    def __init__(self, tensors):
+        self.tensors = tensors
+    def __len__(self):
+        return len(self.tensors)
+    def __getitem__(self, idx):
+        return self.tensors[idx][0].squeeze(0), 0
 
 
 # ---------------------------------------------------------------------------
@@ -173,29 +166,19 @@ def build_calibration_tensors(scan_paths, sensor_cfg, max_frames):
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Vitis AI PTQ quantization for RangeNet DarkNet53"
-    )
-    parser.add_argument("--model", required=True,
-                        help="Path to pretrained model dir (arch_cfg.yaml + weights)")
-    parser.add_argument("--scan-root", required=True,
-                        help="Path to KITTI sequences root")
+    parser = argparse.ArgumentParser(description="Vitis AI PTQ for RangeNet DarkNet53")
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--scan-root", required=True)
     parser.add_argument("--sequence", default="00")
-    parser.add_argument("--num-calib-frames", type=int, default=200,
-                        help="Number of frames for calibration (100-500 recommended)")
-    parser.add_argument("--num-test-frames", type=int, default=50,
-                        help="Number of frames for post-quant accuracy test")
-    parser.add_argument("--output-dir", default=None,
-                        help="Where to write quantization results")
+    parser.add_argument("--num-calib-frames", type=int, default=200)
+    parser.add_argument("--num-test-frames", type=int, default=200)
+    parser.add_argument("--output-dir", default=None)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--quant-mode", default="calib",
-                        choices=["calib", "test"],
-                        help="'calib' to calibrate, 'test' to evaluate + export xmodel")
+                        choices=["calib", "fast_finetune", "test"],
+                        help="Sequence: calib -> fast_finetune -> test")
     args = parser.parse_args()
 
-    # ------------------------------------------------------------------
-    # Resolve paths
-    # ------------------------------------------------------------------
     model_dir = Path(args.model).resolve()
     arch_cfg = load_yaml(model_dir / "arch_cfg.yaml")
     data_cfg = load_yaml(model_dir / "data_cfg.yaml")
@@ -204,155 +187,117 @@ def main():
 
     scan_dir = Path(args.scan_root).resolve() / args.sequence / "velodyne"
     scan_paths = sorted(scan_dir.glob("*.bin"))
-    if not scan_paths:
-        raise FileNotFoundError(f"No .bin files in {scan_dir}")
 
     output_dir = Path(args.output_dir) if args.output_dir else FPGA_DIR / "vitis_output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    device_str = args.device
-    if device_str == "auto":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device(device_str)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else torch.device(args.device)
 
-    print(f"Device:           {device}")
-    print(f"Classes:          {nclasses}")
-    print(f"Available scans:  {len(scan_paths)}")
-    print(f"Calib frames:     {args.num_calib_frames}")
-    print(f"Output dir:       {output_dir}")
-    print(f"Quant mode:       {args.quant_mode}")
-
-    # ------------------------------------------------------------------
-    # Load FP32 model
-    # ------------------------------------------------------------------
     print("\nLoading FP32 Segmentator ...")
     with torch.no_grad():
         segmentator = Segmentator(arch_cfg, nclasses, str(model_dir))
 
-    # Wrap for quantization
-    model = SegmentatorForQuantization(segmentator)
-    model.to(device).eval()
-    print("  Model wrapped for quantization (no softmax, no .detach())")
-
-    # ------------------------------------------------------------------
-    # Create dummy input for quantizer graph tracing
-    # ------------------------------------------------------------------
-    # FIX: Use a real LiDAR frame to initialize the quantizer instead of random noise, 
-    # which prevents skewed node bindings/activation scales during tracing
-    dummy_scan = build_calibration_tensors(scan_paths, sensor_cfg, 1)[0][0]
+    model = SegmentatorForQuantization(segmentator).to(device).eval()
+    
+    dummy_scan = build_calibration_tensors(scan_paths, sensor_cfg, 1, shuffle=False)[0][0]
     dummy_input = dummy_scan.clone().to(device)
 
-    # ------------------------------------------------------------------
-    # Import Vitis AI quantizer
-    # ------------------------------------------------------------------
     try:
         from pytorch_nndct.apis import torch_quantizer, dump_xmodel
     except ImportError:
-        print("\nERROR: pytorch_nndct not found.")
-        print("This script must be run inside the Vitis AI 3.0 Docker container:")
-        print("  docker pull xilinx/vitis-ai-pytorch-gpu:3.0.0")
-        print("  docker run -it --gpus all -v /workspace:/workspace \\")
-        print("    xilinx/vitis-ai-pytorch-gpu:3.0.0 bash")
+        print("\nERROR: pytorch_nndct not found. Run inside Vitis AI Docker.")
         sys.exit(1)
 
     # ------------------------------------------------------------------
-    # Create quantizer
+    # PHASE 1 & 3: CALIB AND TEST
     # ------------------------------------------------------------------
-    print(f"\nCreating Vitis AI quantizer (mode={args.quant_mode}) ...")
-    quantizer = torch_quantizer(
-        quant_mode=args.quant_mode,
-        module=model,
-        input_args=(dummy_input,),
-        output_dir=str(output_dir),
-        bitwidth=8,
-        device=device,
-    )
-    quant_model = quantizer.quant_model
-
-    # ------------------------------------------------------------------
-    # Calibration or Test
-    # ------------------------------------------------------------------
-    if args.quant_mode == "calib":
-        print(f"\nLoading {args.num_calib_frames} calibration frames ...")
-        calib_tensors = build_calibration_tensors(
-            scan_paths, sensor_cfg, args.num_calib_frames
+    if args.quant_mode in ["calib", "test"]:
+        quantizer = torch_quantizer(
+            quant_mode=args.quant_mode,
+            module=model,
+            input_args=(dummy_input,),
+            output_dir=str(output_dir),
+            bitwidth=8,
+            device=device,
         )
-        print(f"  Loaded {len(calib_tensors)} frames")
+        quant_model = quantizer.quant_model
 
-        print("\nRunning calibration ...")
-        quant_model.eval()
-        with torch.no_grad():
-            # FIX: Unpack the tuple to get just the tensor (ignoring the mask for calibration passes)
-            for i, (x, _) in enumerate(calib_tensors):
-                x = x.to(device)
-                _ = quant_model(x)
-                if (i + 1) % 50 == 0 or (i + 1) == len(calib_tensors):
-                    print(f"  Calibrated {i + 1}/{len(calib_tensors)} frames")
+        if args.quant_mode == "calib":
+            print(f"\n[PHASE 1] Running Standard Calibration ({args.num_calib_frames} frames)...")
+            calib_tensors = build_calibration_tensors(scan_paths, sensor_cfg, args.num_calib_frames, shuffle=True)
+            
+            quant_model.eval()
+            with torch.no_grad():
+                for i, (x, _) in enumerate(calib_tensors):
+                    _ = quant_model(x.to(device))
+            
+            quantizer.export_quant_config()
+            print("Calibration complete. Next step: run with --quant-mode fast_finetune")
 
-        # Export calibration config (quant_info.json / scale factors)
-        quantizer.export_quant_config()
-        print(f"\nCalibration complete. Results in: {output_dir}")
-        print("\nNext step: re-run with --quant-mode test to evaluate + export xmodel")
+        elif args.quant_mode == "test":
+            print(f"\n[PHASE 3] Running Accuracy Test ({args.num_test_frames} frames)...")
+            test_tensors = build_calibration_tensors(scan_paths, sensor_cfg, args.num_test_frames, shuffle=False)
 
-    elif args.quant_mode == "test":
-        print(f"\nLoading {args.num_test_frames} test frames ...")
-        test_tensors = build_calibration_tensors(
-            scan_paths, sensor_cfg, args.num_test_frames
+            fp32_preds, masks, int8_preds = [], [], []
+            
+            model.eval()
+            with torch.no_grad():
+                for x, mask in test_tensors:
+                    fp32_preds.append(model(x.to(device)).argmax(dim=1).cpu().numpy())
+                    masks.append(mask.cpu().numpy().astype(bool)) 
+
+            quant_model.eval()
+            with torch.no_grad():
+                for x, _ in test_tensors:
+                    int8_preds.append(quant_model(x.to(device)).argmax(dim=1).cpu().numpy())
+
+            total_pixels, total_mismatch = 0, 0
+            for fp32_p, int8_p, mask in zip(fp32_preds, int8_preds, masks):
+                fp32_valid = fp32_p[mask]
+                int8_valid = int8_p[mask]
+                total_pixels += fp32_valid.size
+                total_mismatch += int(np.sum(fp32_valid != int8_valid))
+
+            print(f"\n=== INT8 vs FP32 Accuracy ===")
+            print(f"  Total pixels:  {total_pixels}")
+            print(f"  Mismatched:    {total_mismatch}")
+            print(f"  Mismatch rate: {(100.0 * total_mismatch / max(total_pixels, 1)):.3f}%")
+
+            print(f"\nExporting xmodel to {output_dir} ...")
+            quantizer.export_xmodel(output_dir=str(output_dir))
+
+    # ------------------------------------------------------------------
+    # PHASE 2: FAST FINETUNE (AdaQuant)
+    # ------------------------------------------------------------------
+    elif args.quant_mode == "fast_finetune":
+        try:
+            from pytorch_nndct.qproc.ada_quant import AdvancedQuantProcessor
+        except ImportError:
+            print("\nERROR: AdvancedQuantProcessor not found. Ensure you are on Vitis AI 3.0+.")
+            sys.exit(1)
+
+        print(f"\n[PHASE 2] Running Fast Finetuning to align DarkNet skip connections...")
+        calib_tensors = build_calibration_tensors(scan_paths, sensor_cfg, args.num_calib_frames, shuffle=True)
+        
+        # Batch size 1 keeps VRAM usage safe for massive LiDAR tensors
+        dataset = FastFinetuneDataset(calib_tensors)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+
+        processor = AdvancedQuantProcessor(
+            model,
+            dummy_input,
+            dataloader=dataloader,
+            output_dir=str(output_dir),
+            bitwidth=8,
+            device=device
         )
 
-        # Also run FP32 for comparison
-        print("Running FP32 baseline ...")
-        fp32_preds = []
-        masks = [] # FIX: List to store masks for evaluation
-        model.eval()
-        with torch.no_grad():
-            # FIX: Unpack the tuple to get both tensor and mask
-            for x, mask in test_tensors:
-                x = x.to(device)
-                logits = model(x)
-                fp32_preds.append(logits.argmax(dim=1).cpu().numpy())
-                masks.append(mask.cpu().numpy().astype(bool)) # FIX: Save boolean mask
-
-        print("Running INT8 quantized ...")
-        int8_preds = []
-        quant_model.eval()
-        with torch.no_grad():
-            # FIX: Unpack the tuple
-            for x, _ in test_tensors:
-                x = x.to(device)
-                logits = quant_model(x)
-                int8_preds.append(logits.argmax(dim=1).cpu().numpy())
-
-        # Compare
-        total_pixels = 0
-        total_mismatch = 0
-        # FIX: Iterate with masks to filter out invalid pixels in the projected LiDAR frame
-        for fp32_p, int8_p, mask in zip(fp32_preds, int8_preds, masks):
-            fp32_valid = fp32_p[mask]
-            int8_valid = int8_p[mask]
-            total_pixels += fp32_valid.size
-            total_mismatch += int(np.sum(fp32_valid != int8_valid))
-
-        mismatch_pct = 100.0 * total_mismatch / max(total_pixels, 1)
-        print(f"\n=== INT8 vs FP32 Accuracy ===")
-        print(f"  Total pixels:     {total_pixels}")
-        print(f"  Mismatched:       {total_mismatch}")
-        print(f"  Mismatch rate:    {mismatch_pct:.3f}%")
-
-        if mismatch_pct > 5.0:
-            print("  WARNING: >5% mismatch — consider quantization-aware training")
-        elif mismatch_pct > 1.0:
-            print("  ACCEPTABLE: 1-5% mismatch — typical for PTQ")
-        else:
-            print("  EXCELLENT: <1% mismatch")
-
-        # Export deployable xmodel
-        print(f"\nExporting xmodel to {output_dir} ...")
-        quantizer.export_xmodel(output_dir=str(output_dir))
-        print("  xmodel exported successfully")
-        print(f"\nNext step: compile with vai_c_xir:")
-        print(f"  bash fpga/vitis/compile_vitisai.sh {output_dir}")
+        print("  Starting weight adjustment. This uses FP32 outputs as a target to fix INT8 scales...")
+        _ = processor.finetune()
+        processor.export_quant_config()
+        
+        print("\nFast Finetuning complete! Config updated.")
+        print("Next step: run with --quant-mode test to evaluate and export.")
 
 
 if __name__ == "__main__":
