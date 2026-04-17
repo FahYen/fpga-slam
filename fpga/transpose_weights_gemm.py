@@ -168,7 +168,7 @@ def main():
         safe_name = name.replace(".", "_")
 
         # ---- 1. Transpose weight to GEMM-B layout ----
-        w_path = os.path.join(INT8_WEIGHT_DIR, layer["weight_file"])
+        w_path = os.path.join(INT8_WEIGHT_DIR, layer["weight_int8_file"])
         w_i8 = np.fromfile(w_path, dtype=np.int8).reshape(w_shape)
         w_gemm = transpose_conv_weight(w_i8, op, kernel)
 
@@ -185,10 +185,12 @@ def main():
             )
             # Need s_in (activation input scale) and w_scales (per-channel weight scale)
             act_info = act_by_name.get(name)
-            w_scale_per_ch = layer.get("weight_scale")
-            if act_info and w_scale_per_ch is not None:
+            w_scale_file = layer.get("weight_scale_f32_file")
+            if act_info and w_scale_file:
                 s_in = act_info["input_scale"]
-                w_scales = np.array(w_scale_per_ch, dtype=np.float64)
+                w_scales = np.fromfile(
+                    os.path.join(INT8_WEIGHT_DIR, w_scale_file), dtype=np.float32
+                ).astype(np.float64)
                 b_i32 = bias_to_int32(bias_fp, s_in, w_scales)
             else:
                 # Fallback: approximate using overall scale
