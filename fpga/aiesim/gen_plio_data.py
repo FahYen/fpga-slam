@@ -76,9 +76,11 @@ def extract_tile_3x3(act_nchw, oh_start, ow_start, ic_start, ic_block):
     """
     _, IC, H, W = act_nchw.shape
 
-    # Input tile includes 1-pixel halo on each side for 3×3 conv
-    ih_start = oh_start  # output pixel oh_start maps to input oh_start (with halo extending +2)
-    iw_start = ow_start
+    # Input tile includes 1-pixel halo on each side for 3×3 conv (pad=1)
+    # Output pixel oh maps to input center oh; receptive field is [oh-1 .. oh+1]
+    # So the input tile starts 1 row/col before the output tile start
+    ih_start = oh_start - 1
+    iw_start = ow_start - 1
 
     in_h = TILE_H + 2  # 10
     in_w = TILE_W + 2  # 34
