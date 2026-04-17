@@ -21,8 +21,7 @@
 //   - Weight transposition to GEMM-B layout
 // =============================================================================
 
-#include <adf.h>
-#include "conv_kernel.cpp"
+#include "conv_kernel.h"
 
 // Buffer sizes from conv_kernel.cpp
 constexpr int BIAS_BUF    = OC_BLOCK * sizeof(int32_t);   // 128 bytes
