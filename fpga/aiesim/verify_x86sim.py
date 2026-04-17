@@ -18,13 +18,14 @@ import numpy as np
 
 
 def read_plio_txt(filepath):
-    """Read a PLIO text file (one integer per line) into a numpy array."""
+    """Read a PLIO text file (one or more integers per line) into a numpy array."""
     values = []
     with open(filepath) as f:
         for line in f:
             line = line.strip()
             if line:
-                values.append(int(line))
+                for tok in line.split():
+                    values.append(int(tok))
     return np.array(values, dtype=np.int64)
 
 
