@@ -38,13 +38,34 @@ IC_BLOCK = 32
 OC_BLOCK = 32
 
 
-def write_plio_txt(filepath, data, dtype_str="int"):
-    """Write array to PLIO text file, one value per line."""
+def write_plio_txt(filepath, data, dtype_str="int", plio_bits=64):
+    """Write array to PLIO text file in packed format.
+
+    The x86simulator expects multiple values per line based on PLIO width:
+      plio_64_bits + int8  → 8 values per line
+      plio_64_bits + int32 → 2 values per line
+      plio_32_bits + int8  → 4 values per line
+      plio_32_bits + int32 → 1 value per line
+    """
     flat = data.flatten()
+    elem_bytes = 4 if "32" in dtype_str else 1  # int32=4 bytes, int8=1 byte
+    vals_per_line = plio_bits // (8 * elem_bytes)
     with open(filepath, "w") as f:
-        for val in flat:
-            f.write(f"{int(val)}\n")
-    print(f"  Wrote {filepath} ({len(flat)} values, {dtype_str})")
+        for i in range(0, len(flat), vals_per_line):
+            chunk = flat[i:i + vals_per_line]
+            f.write(" ".join(str(int(v)) for v in chunk) + "\n")
+    n_lines = (len(flat) + vals_per_line - 1) // vals_per_line
+    print(f"  Wrote {filepath} ({len(flat)} values, {dtype_str}, "
+          f"{vals_per_line}/line, {n_lines} lines)")
+
+
+def write_dummy_plio(filepath, num_elements, dtype_str="int8", plio_bits=64):
+    """Write a dummy (all-zeros) PLIO file."""
+    if "32" in dtype_str:
+        data = np.zeros(num_elements, dtype=np.int32)
+    else:
+        data = np.zeros(num_elements, dtype=np.int8)
+    write_plio_txt(filepath, data, dtype_str, plio_bits)
 
 
 def extract_tile_3x3(act_nchw, oh_start, ow_start, ic_start, ic_block):
@@ -284,14 +305,32 @@ def main():
         args.oc_start, OC_BLOCK
     )
 
-    # Write PLIO text files
+    # Write PLIO text files (format must match plio width in AIE_graph.cpp)
+    # 3x3/1x1 act, wt: plio_64_bits, int8 → 8 vals/line
+    # bias, rq_mult:    plio_32_bits, int32 → 1 val/line
+    # rq_shift:         plio_32_bits, int8 → 4 vals/line
     print(f"\nWriting PLIO files to {args.output_dir}/")
-    write_plio_txt(f"{args.output_dir}/act_{kernel_type}.txt", act_tile, "int8")
-    write_plio_txt(f"{args.output_dir}/wt_{kernel_type}.txt", wt_block, "int8")
-    write_plio_txt(f"{args.output_dir}/bias_{kernel_type}.txt", bias_block, "int32")
-    write_plio_txt(f"{args.output_dir}/rq_mult_{kernel_type}.txt", rq_mult_block, "int32")
-    write_plio_txt(f"{args.output_dir}/rq_shift_{kernel_type}.txt", rq_shift_block, "int8")
-    write_plio_txt(f"{args.output_dir}/expected_out.txt", out_tile, "int8")
+    write_plio_txt(f"{args.output_dir}/act_{kernel_type}.txt", act_tile, "int8", plio_bits=64)
+    write_plio_txt(f"{args.output_dir}/wt_{kernel_type}.txt", wt_block, "int8", plio_bits=64)
+    write_plio_txt(f"{args.output_dir}/bias_{kernel_type}.txt", bias_block, "int32", plio_bits=32)
+    write_plio_txt(f"{args.output_dir}/rq_mult_{kernel_type}.txt", rq_mult_block, "int32", plio_bits=32)
+    write_plio_txt(f"{args.output_dir}/rq_shift_{kernel_type}.txt", rq_shift_block, "int8", plio_bits=32)
+    write_plio_txt(f"{args.output_dir}/expected_out.txt", out_tile, "int8", plio_bits=64)
+
+    # Generate dummy PLIO files for unused kernels
+    # (the graph instantiates all three kernels, so all PLIOs need files)
+    unused_type = "1x1" if is_3x3 else "3x3"
+    in_buf_unused = (TILE_H * TILE_W * IC_BLOCK) if is_3x3 else ((TILE_H+2) * (TILE_W+2) * IC_BLOCK)
+    wt_buf_unused = (IC_BLOCK * OC_BLOCK) if is_3x3 else (IC_BLOCK * 9 * OC_BLOCK)
+    print(f"\n  Writing dummy files for unused {unused_type} and elem_add kernels...")
+    write_dummy_plio(f"{args.output_dir}/act_{unused_type}.txt", in_buf_unused, "int8", 64)
+    write_dummy_plio(f"{args.output_dir}/wt_{unused_type}.txt", wt_buf_unused, "int8", 64)
+    write_dummy_plio(f"{args.output_dir}/bias_{unused_type}.txt", OC_BLOCK, "int32", 32)
+    write_dummy_plio(f"{args.output_dir}/rq_mult_{unused_type}.txt", OC_BLOCK, "int32", 32)
+    write_dummy_plio(f"{args.output_dir}/rq_shift_{unused_type}.txt", OC_BLOCK, "int8", 32)
+    out_buf = TILE_H * TILE_W * OC_BLOCK
+    write_dummy_plio(f"{args.output_dir}/add_a.txt", out_buf, "int8", 64)
+    write_dummy_plio(f"{args.output_dir}/add_b.txt", out_buf, "int8", 64)
 
     # Also write a small metadata file
     meta = {
