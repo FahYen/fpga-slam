@@ -12,9 +12,14 @@ inline void gemm_int8(const int8_t* __restrict A, const int8_t* __restrict B, in
         for (int nt = 0; nt < N_TOTAL / MMUL_N; ++nt) {
             aie::mmul<MMUL_M, MMUL_K, MMUL_N, int8, int8> mm;
             for (int kt = 0; kt < K_TOTAL / MMUL_K; ++kt) {
-                // Direct vector loads from input buffers (AIE2P optimized)
-                aie::vector<int8, 32> va = aie::load_v<32>(&A[(mt*4)*K_TOTAL + kt*8]);
-                aie::vector<int8, 32> vb = aie::load_v<32>(&B[(kt*8)*N_TOTAL + nt*4]);
+                // Use memcpy for fast tile building (avoids alignment issues)
+                alignas(32) int8_t a_tile[32];
+                alignas(32) int8_t b_tile[32];
+                __builtin_memcpy(a_tile, &A[(mt*4)*K_TOTAL + kt*8], 32);
+                __builtin_memcpy(b_tile, &B[(kt*8)*N_TOTAL + nt*4], 32);
+
+                aie::vector<int8, 32> va = aie::load_v<32>(a_tile);
+                aie::vector<int8, 32> vb = aie::load_v<32>(b_tile);
 
                 if (kt == 0) mm.mul(va, vb);
                 else mm.mac(va, vb);
