@@ -2,9 +2,10 @@
 """
 Quantization feasibility study for RangeNet DarkNet53 → FPGA accelerator.
 
-Compares FP32, INT8/INT16 weight-only, and INT8 weight+activation quantized
-inference against golden GPU reference labels. Reports per-frame and aggregate
-pixel mismatch rates to determine if post-training quantization is viable.
+Compares FP32 inference against configurable fake-quantized runs:
+weight-only, per-layer weight+activation, and per-channel weight+activation.
+Reports per-frame and aggregate pixel mismatch rates to determine if
+post-training quantization is viable.
 
 Usage:
     python quantize_feasibility.py \
@@ -263,7 +264,7 @@ def compare(pred, golden):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="RangeNet INT8/INT16 quantization feasibility for FPGA"
+        description="RangeNet quantization feasibility for FPGA"
     )
     parser.add_argument("--model", required=True)
     parser.add_argument("--scan-root", required=True)
@@ -272,6 +273,9 @@ def main():
     parser.add_argument("--num-frames", type=int, default=10)
     parser.add_argument("--output", default="quantize_feasibility_report.json")
     parser.add_argument("--device", default="auto")
+    parser.add_argument("--weight-only-bits", nargs="*", type=int, default=[8, 16])
+    parser.add_argument("--per-layer-bits", nargs="*", type=int, default=[8, 16])
+    parser.add_argument("--per-channel-bits", nargs="*", type=int, default=[8])
     args = parser.parse_args()
 
     model_dir = Path(args.model).resolve()
@@ -326,10 +330,15 @@ def main():
             "nclasses": nclasses,
             "device": str(device),
             "num_frames": len(scan_paths),
+            "weight_only_bits": args.weight_only_bits,
+            "per_layer_bits": args.per_layer_bits,
+            "per_channel_bits": args.per_channel_bits,
         },
         "frames": [],
         "aggregate": {},
     }
+    aggregate_keys = []
+    seen_aggregate_keys = set()
 
     def infer_all(model):
         preds = []
@@ -347,6 +356,12 @@ def main():
         report["frames"].append(f)
         return f
 
+    def set_metric(frame, key, metric):
+        frame[key] = metric
+        if key not in seen_aggregate_keys:
+            seen_aggregate_keys.add(key)
+            aggregate_keys.append(key)
+
     # Phase 1 — FP32 baseline
     t0 = time.time()
     print("Phase 1: FP32 baseline")
@@ -356,10 +371,10 @@ def main():
     for i, s in enumerate(scans):
         f = ensure_frame(s["name"], s["num_points"])
         if s["golden"] is not None:
-            f["fp32_vs_golden"] = compare(fp32_preds[i], s["golden"])
+            set_metric(f, "fp32_vs_golden", compare(fp32_preds[i], s["golden"]))
 
     # Phase 2 — weight-only quantization (INT8 and INT16)
-    for bits in [8, 16]:
+    for bits in args.weight_only_bits:
         tag = f"int{bits}_wt"
         t0 = time.time()
         print(f"Phase 2: {tag} weight-only quantization")
@@ -371,12 +386,12 @@ def main():
         del m
         for i, s in enumerate(scans):
             f = ensure_frame(s["name"], s["num_points"])
-            f[f"{tag}_vs_fp32"] = compare(preds[i], fp32_preds[i])
+            set_metric(f, f"{tag}_vs_fp32", compare(preds[i], fp32_preds[i]))
             if s["golden"] is not None:
-                f[f"{tag}_vs_golden"] = compare(preds[i], s["golden"])
+                set_metric(f, f"{tag}_vs_golden", compare(preds[i], s["golden"]))
 
     # Phase 3 — per-layer weight+activation quantization (INT8 and INT16)
-    for bits in [8, 16]:
+    for bits in args.per_layer_bits:
         tag = f"int{bits}_wt_act"
         t0 = time.time()
         print(f"Phase 3: {tag} per-layer — calibrating")
@@ -397,45 +412,38 @@ def main():
 
         for i, s in enumerate(scans):
             f = ensure_frame(s["name"], s["num_points"])
-            f[f"{tag}_vs_fp32"] = compare(preds[i], fp32_preds[i])
+            set_metric(f, f"{tag}_vs_fp32", compare(preds[i], fp32_preds[i]))
             if s["golden"] is not None:
-                f[f"{tag}_vs_golden"] = compare(preds[i], s["golden"])
+                set_metric(f, f"{tag}_vs_golden", compare(preds[i], s["golden"]))
 
-    # Phase 4 — per-channel activation quantization (INT8 only)
-    tag = "int8_wt_act_perchan"
-    t0 = time.time()
-    print(f"Phase 4: {tag} — calibrating per-channel")
-    m = copy.deepcopy(model_fp32)
-    fake_quantize_weights(m, bits=8)
-    pc_collector = PerChannelActivationCollector()
-    pc_collector.register(m)
-    _ = infer_all(m)
-    pc_collector.remove()
+    # Phase 4 — per-channel activation quantization
+    for bits in args.per_channel_bits:
+        tag = f"int{bits}_wt_act_perchan"
+        t0 = time.time()
+        print(f"Phase 4: {tag} — calibrating per-channel")
+        m = copy.deepcopy(model_fp32)
+        fake_quantize_weights(m, bits=bits)
+        pc_collector = PerChannelActivationCollector()
+        pc_collector.register(m)
+        _ = infer_all(m)
+        pc_collector.remove()
 
-    pc_quantizer = PerChannelActivationQuantizer(pc_collector.ranges, bits=8)
-    pc_quantizer.register(m)
-    print(f"  {len(pc_collector.ranges)} activation layers quantized per-channel — evaluating")
-    preds = infer_all(m)
-    pc_quantizer.remove()
-    del m
-    print(f"  done in {time.time()-t0:.1f}s")
+        pc_quantizer = PerChannelActivationQuantizer(pc_collector.ranges, bits=bits)
+        pc_quantizer.register(m)
+        print(f"  {len(pc_collector.ranges)} activation layers quantized per-channel — evaluating")
+        preds = infer_all(m)
+        pc_quantizer.remove()
+        del m
+        print(f"  done in {time.time()-t0:.1f}s")
 
-    for i, s in enumerate(scans):
-        f = ensure_frame(s["name"], s["num_points"])
-        f[f"{tag}_vs_fp32"] = compare(preds[i], fp32_preds[i])
-        if s["golden"] is not None:
-            f[f"{tag}_vs_golden"] = compare(preds[i], s["golden"])
+        for i, s in enumerate(scans):
+            f = ensure_frame(s["name"], s["num_points"])
+            set_metric(f, f"{tag}_vs_fp32", compare(preds[i], fp32_preds[i]))
+            if s["golden"] is not None:
+                set_metric(f, f"{tag}_vs_golden", compare(preds[i], s["golden"]))
 
     # Aggregate
-    keys = [
-        "fp32_vs_golden",
-        "int8_wt_vs_fp32", "int8_wt_vs_golden",
-        "int16_wt_vs_fp32", "int16_wt_vs_golden",
-        "int8_wt_act_vs_fp32", "int8_wt_act_vs_golden",
-        "int16_wt_act_vs_fp32", "int16_wt_act_vs_golden",
-        "int8_wt_act_perchan_vs_fp32", "int8_wt_act_perchan_vs_golden",
-    ]
-    for key in keys:
+    for key in aggregate_keys:
         vals = [f[key]["mismatch_pct"] for f in report["frames"] if key in f]
         if vals:
             report["aggregate"][key] = {
