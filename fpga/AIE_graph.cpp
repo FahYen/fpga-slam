@@ -130,20 +130,20 @@ public:
     // adf::output_plio plio_3x3_out;
 
     // 1×1 conv PLIOs
-    // adf::input_plio  plio_1x1_act;
-    // adf::input_plio  plio_1x1_wt;
-    // adf::input_plio  plio_1x1_bias;
-    // adf::input_plio  plio_1x1_rq_mult;
-    // adf::input_plio  plio_1x1_rq_shift;
-    // adf::output_plio plio_1x1_out;
+    adf::input_plio  plio_1x1_act;
+    adf::input_plio  plio_1x1_wt;
+    adf::input_plio  plio_1x1_bias;
+    adf::input_plio  plio_1x1_rq_mult;
+    adf::input_plio  plio_1x1_rq_shift;
+    adf::output_plio plio_1x1_out;
 
     // 3×3 stride-2 conv PLIOs
-    adf::input_plio  plio_3x3s2_act;
-    adf::input_plio  plio_3x3s2_wt;
-    adf::input_plio  plio_3x3s2_bias;
-    adf::input_plio  plio_3x3s2_rq_mult;
-    adf::input_plio  plio_3x3s2_rq_shift;
-    adf::output_plio plio_3x3s2_out;
+    // adf::input_plio  plio_3x3s2_act;
+    // adf::input_plio  plio_3x3s2_wt;
+    // adf::input_plio  plio_3x3s2_bias;
+    // adf::input_plio  plio_3x3s2_rq_mult;
+    // adf::input_plio  plio_3x3s2_rq_shift;
+    // adf::output_plio plio_3x3s2_out;
 
     // Elem add PLIOs
     // adf::input_plio  plio_add_a;
@@ -151,8 +151,8 @@ public:
     // adf::output_plio plio_add_out;
 
     // Conv3x3Graph    g_conv3x3;
-    Conv3x3S2Graph  g_conv3x3_s2;
-    // Conv1x1Graph    g_conv1x1;
+    // Conv3x3S2Graph  g_conv3x3_s2;
+    Conv1x1Graph    g_conv1x1;
     // ElemAddGraph    g_elem_add;
 
     RangeNetGraph() {
@@ -172,34 +172,34 @@ public:
         // adf::connect<>(g_conv3x3.out_act,        plio_3x3_out.in[0]);
 
         // ---- 1×1 conv PLIO Setup ----
-        // plio_1x1_act      = adf::input_plio::create("in_1x1_act", adf::plio_64_bits, "data/act_1x1.txt");
-        // plio_1x1_wt       = adf::input_plio::create("in_1x1_wt",  adf::plio_64_bits, "data/wt_1x1.txt");
-        // plio_1x1_bias     = adf::input_plio::create("in_1x1_bias", adf::plio_32_bits, "data/bias_1x1.txt");
-        // plio_1x1_rq_mult  = adf::input_plio::create("in_1x1_rq_mult", adf::plio_32_bits, "data/rq_mult_1x1.txt");
-        // plio_1x1_rq_shift = adf::input_plio::create("in_1x1_rq_shift", adf::plio_32_bits, "data/rq_shift_1x1.txt");
-        // plio_1x1_out      = adf::output_plio::create("out_1x1", adf::plio_64_bits, "data/out_1x1.txt");
+        plio_1x1_act      = adf::input_plio::create("in_1x1_act", adf::plio_64_bits, "data/act_1x1.txt");
+        plio_1x1_wt       = adf::input_plio::create("in_1x1_wt",  adf::plio_64_bits, "data/wt_1x1.txt");
+        plio_1x1_bias     = adf::input_plio::create("in_1x1_bias", adf::plio_32_bits, "data/bias_1x1.txt");
+        plio_1x1_rq_mult  = adf::input_plio::create("in_1x1_rq_mult", adf::plio_32_bits, "data/rq_mult_1x1.txt");
+        plio_1x1_rq_shift = adf::input_plio::create("in_1x1_rq_shift", adf::plio_32_bits, "data/rq_shift_1x1.txt");
+        plio_1x1_out      = adf::output_plio::create("out_1x1", adf::plio_64_bits, "data/out_1x1.txt");
 
-        // adf::connect<>(plio_1x1_act.out[0],      g_conv1x1.in_act);
-        // adf::connect<>(plio_1x1_wt.out[0],       g_conv1x1.in_wt);
-        // adf::connect<>(plio_1x1_bias.out[0],     g_conv1x1.in_bias);
-        // adf::connect<>(plio_1x1_rq_mult.out[0],  g_conv1x1.in_rq_mult);
-        // adf::connect<>(plio_1x1_rq_shift.out[0], g_conv1x1.in_rq_shift);
-        // adf::connect<>(g_conv1x1.out_act,        plio_1x1_out.in[0]);
+        adf::connect<>(plio_1x1_act.out[0],      g_conv1x1.in_act);
+        adf::connect<>(plio_1x1_wt.out[0],       g_conv1x1.in_wt);
+        adf::connect<>(plio_1x1_bias.out[0],     g_conv1x1.in_bias);
+        adf::connect<>(plio_1x1_rq_mult.out[0],  g_conv1x1.in_rq_mult);
+        adf::connect<>(plio_1x1_rq_shift.out[0], g_conv1x1.in_rq_shift);
+        adf::connect<>(g_conv1x1.out_act,        plio_1x1_out.in[0]);
 
         // ---- 3×3 stride-2 PLIO Setup ----
-        plio_3x3s2_act      = adf::input_plio::create("in_3x3s2_act", adf::plio_64_bits, "data/act_3x3s2.txt");
-        plio_3x3s2_wt       = adf::input_plio::create("in_3x3s2_wt",  adf::plio_64_bits, "data/wt_3x3s2.txt");
-        plio_3x3s2_bias     = adf::input_plio::create("in_3x3s2_bias", adf::plio_32_bits, "data/bias_3x3s2.txt");
-        plio_3x3s2_rq_mult  = adf::input_plio::create("in_3x3s2_rq_mult", adf::plio_32_bits, "data/rq_mult_3x3s2.txt");
-        plio_3x3s2_rq_shift = adf::input_plio::create("in_3x3s2_rq_shift", adf::plio_32_bits, "data/rq_shift_3x3s2.txt");
-        plio_3x3s2_out      = adf::output_plio::create("out_3x3s2", adf::plio_64_bits, "data/out_3x3s2.txt");
+        // plio_3x3s2_act      = adf::input_plio::create("in_3x3s2_act", adf::plio_64_bits, "data/act_3x3s2.txt");
+        // plio_3x3s2_wt       = adf::input_plio::create("in_3x3s2_wt",  adf::plio_64_bits, "data/wt_3x3s2.txt");
+        // plio_3x3s2_bias     = adf::input_plio::create("in_3x3s2_bias", adf::plio_32_bits, "data/bias_3x3s2.txt");
+        // plio_3x3s2_rq_mult  = adf::input_plio::create("in_3x3s2_rq_mult", adf::plio_32_bits, "data/rq_mult_3x3s2.txt");
+        // plio_3x3s2_rq_shift = adf::input_plio::create("in_3x3s2_rq_shift", adf::plio_32_bits, "data/rq_shift_3x3s2.txt");
+        // plio_3x3s2_out      = adf::output_plio::create("out_3x3s2", adf::plio_64_bits, "data/out_3x3s2.txt");
 
-        adf::connect<>(plio_3x3s2_act.out[0],      g_conv3x3_s2.in_act);
-        adf::connect<>(plio_3x3s2_wt.out[0],       g_conv3x3_s2.in_wt);
-        adf::connect<>(plio_3x3s2_bias.out[0],     g_conv3x3_s2.in_bias);
-        adf::connect<>(plio_3x3s2_rq_mult.out[0],  g_conv3x3_s2.in_rq_mult);
-        adf::connect<>(plio_3x3s2_rq_shift.out[0], g_conv3x3_s2.in_rq_shift);
-        adf::connect<>(g_conv3x3_s2.out_act,       plio_3x3s2_out.in[0]);
+        // adf::connect<>(plio_3x3s2_act.out[0],      g_conv3x3_s2.in_act);
+        // adf::connect<>(plio_3x3s2_wt.out[0],       g_conv3x3_s2.in_wt);
+        // adf::connect<>(plio_3x3s2_bias.out[0],     g_conv3x3_s2.in_bias);
+        // adf::connect<>(plio_3x3s2_rq_mult.out[0],  g_conv3x3_s2.in_rq_mult);
+        // adf::connect<>(plio_3x3s2_rq_shift.out[0], g_conv3x3_s2.in_rq_shift);
+        // adf::connect<>(g_conv3x3_s2.out_act,       plio_3x3s2_out.in[0]);
 
         // ---- Elem add PLIO Setup ----
         // plio_add_a   = adf::input_plio::create("in_add_a", adf::plio_64_bits, "data/add_a.txt");
