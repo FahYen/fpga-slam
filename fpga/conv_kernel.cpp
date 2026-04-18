@@ -12,18 +12,9 @@ inline void gemm_int8(const int8_t* __restrict A, const int8_t* __restrict B, in
         for (int nt = 0; nt < N_TOTAL / MMUL_N; ++nt) {
             aie::mmul<MMUL_M, MMUL_K, MMUL_N, int8, int8> mm;
             for (int kt = 0; kt < K_TOTAL / MMUL_K; ++kt) {
-                // Build A sub-tile [4×8] and B sub-tile [8×4] in local arrays
-                alignas(32) int8_t a_tile[32];
-                alignas(32) int8_t b_tile[32];
-                for (int m = 0; m < 4; ++m)
-                    for (int k = 0; k < 8; ++k)
-                        a_tile[m * 8 + k] = A[(mt*4+m)*K_TOTAL + kt*8 + k];
-                for (int k = 0; k < 8; ++k)
-                    for (int n = 0; n < 4; ++n)
-                        b_tile[k * 4 + n] = B[(kt*8+k)*N_TOTAL + nt*4 + n];
-
-                aie::vector<int8, 32> va = aie::load_v<32>(a_tile);
-                aie::vector<int8, 32> vb = aie::load_v<32>(b_tile);
+                // Direct vector loads from input buffers (AIE2P optimized)
+                aie::vector<int8, 32> va = aie::load_v<32>(&A[(mt*4)*K_TOTAL + kt*8]);
+                aie::vector<int8, 32> vb = aie::load_v<32>(&B[(kt*8)*N_TOTAL + nt*4]);
 
                 if (kt == 0) mm.mul(va, vb);
                 else mm.mac(va, vb);
