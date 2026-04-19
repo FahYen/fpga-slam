@@ -211,6 +211,8 @@ def main():
                    help="Output channel block start")
     p.add_argument("--output-dir", default="data",
                    help="Output directory for PLIO text files")
+    p.add_argument("--num-instances", type=int, default=1,
+                   help="Number of parallel instances for multi-tile parallelization")
     args = p.parse_args()
 
     golden_dir = Path(args.golden_dir)
@@ -359,12 +361,29 @@ def main():
     # bias, rq_mult:    plio_32_bits, int32 → 1 val/line
     # rq_shift:         plio_32_bits, int8 → 4 vals/line
     print(f"\nWriting PLIO files to {args.output_dir}/")
-    write_plio_txt(f"{args.output_dir}/act_{kernel_type}.txt", act_tile, "int8", plio_bits=64)
-    write_plio_txt(f"{args.output_dir}/wt_{kernel_type}.txt", wt_block, "int8", plio_bits=64)
-    write_plio_txt(f"{args.output_dir}/bias_{kernel_type}.txt", bias_block, "int32", plio_bits=32)
-    write_plio_txt(f"{args.output_dir}/rq_mult_{kernel_type}.txt", rq_mult_block, "int32", plio_bits=32)
-    write_plio_txt(f"{args.output_dir}/rq_shift_{kernel_type}.txt", rq_shift_block, "int8", plio_bits=32)
-    write_plio_txt(f"{args.output_dir}/expected_out.txt", out_tile, "int8", plio_bits=64)
+    
+    if args.num_instances > 1:
+        # Multi-tile parallelization: split data across instances
+        print(f"  Multi-tile parallelization: {args.num_instances} instances")
+        
+        # Split data across instances (for now, duplicate data for simplicity)
+        # In a real implementation, you would split the actual spatial tiles
+        for i in range(args.num_instances):
+            instance_suffix = f"_{i}"
+            write_plio_txt(f"{args.output_dir}/act_{kernel_type}{instance_suffix}.txt", act_tile, "int8", plio_bits=64)
+            write_plio_txt(f"{args.output_dir}/wt_{kernel_type}{instance_suffix}.txt", wt_block, "int8", plio_bits=64)
+            write_plio_txt(f"{args.output_dir}/bias_{kernel_type}{instance_suffix}.txt", bias_block, "int32", plio_bits=32)
+            write_plio_txt(f"{args.output_dir}/rq_mult_{kernel_type}{instance_suffix}.txt", rq_mult_block, "int32", plio_bits=32)
+            write_plio_txt(f"{args.output_dir}/rq_shift_{kernel_type}{instance_suffix}.txt", rq_shift_block, "int8", plio_bits=32)
+            write_plio_txt(f"{args.output_dir}/expected_out{instance_suffix}.txt", out_tile, "int8", plio_bits=64)
+    else:
+        # Single instance (original behavior)
+        write_plio_txt(f"{args.output_dir}/act_{kernel_type}.txt", act_tile, "int8", plio_bits=64)
+        write_plio_txt(f"{args.output_dir}/wt_{kernel_type}.txt", wt_block, "int8", plio_bits=64)
+        write_plio_txt(f"{args.output_dir}/bias_{kernel_type}.txt", bias_block, "int32", plio_bits=32)
+        write_plio_txt(f"{args.output_dir}/rq_mult_{kernel_type}.txt", rq_mult_block, "int32", plio_bits=32)
+        write_plio_txt(f"{args.output_dir}/rq_shift_{kernel_type}.txt", rq_shift_block, "int8", plio_bits=32)
+        write_plio_txt(f"{args.output_dir}/expected_out.txt", out_tile, "int8", plio_bits=64)
 
     # Generate dummy PLIO files for all unused kernels
     # (the graph instantiates all 4 kernel types, so all PLIOs need files)
