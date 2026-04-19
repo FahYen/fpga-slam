@@ -41,6 +41,13 @@ extern "C" void registration_accumulate_kernel(const float src_xyz[MAX_REG_CORRE
     SGSLAM_HLS_PRAGMA(HLS INTERFACE m_axi port=used_count offset=slave bundle=gmem4)
     SGSLAM_HLS_PRAGMA(HLS INTERFACE m_axi port=dropped_count offset=slave bundle=gmem4)
 
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=src_xyz bundle=control)
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=tgt_xyz bundle=control)
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=labels bundle=control)
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=jtj_out bundle=control)
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=jtr_out bundle=control)
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=used_count bundle=control)
+    SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=dropped_count bundle=control)
     SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=correspondence_count bundle=control)
     SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=kernel bundle=control)
     SGSLAM_HLS_PRAGMA(HLS INTERFACE s_axilite port=return bundle=control)
