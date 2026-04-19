@@ -137,13 +137,13 @@ public:
     adf::input_plio  plio_1x1_rq_shift;
     adf::output_plio plio_1x1_out;
 
-    // 3×3 stride-2 conv PLIOs
-    adf::input_plio  plio_3x3s2_act;
-    adf::input_plio  plio_3x3s2_wt;
-    adf::input_plio  plio_3x3s2_bias;
-    adf::input_plio  plio_3x3s2_rq_mult;
-    adf::input_plio  plio_3x3s2_rq_shift;
-    adf::output_plio plio_3x3s2_out;
+    // 3×3 stride-2 conv PLIOs (2-tile parallelization)
+    adf::input_plio  plio_3x3s2_act_0, plio_3x3s2_act_1;
+    adf::input_plio  plio_3x3s2_wt_0, plio_3x3s2_wt_1;
+    adf::input_plio  plio_3x3s2_bias_0, plio_3x3s2_bias_1;
+    adf::input_plio  plio_3x3s2_rq_mult_0, plio_3x3s2_rq_mult_1;
+    adf::input_plio  plio_3x3s2_rq_shift_0, plio_3x3s2_rq_shift_1;
+    adf::output_plio plio_3x3s2_out_0, plio_3x3s2_out_1;
 
     // Elem add PLIOs
     adf::input_plio  plio_add_a;
@@ -151,7 +151,7 @@ public:
     adf::output_plio plio_add_out;
 
     Conv3x3Graph    g_conv3x3;
-    Conv3x3S2Graph  g_conv3x3_s2;
+    Conv3x3S2Graph  g_conv3x3_s2_0, g_conv3x3_s2_1;
     Conv1x1Graph    g_conv1x1;
     ElemAddGraph    g_elem_add;
 
@@ -186,20 +186,35 @@ public:
         adf::connect<>(plio_1x1_rq_shift.out[0], g_conv1x1.in_rq_shift);
         adf::connect<>(g_conv1x1.out_act,        plio_1x1_out.in[0]);
 
-        // ---- 3×3 stride-2 PLIO Setup ----
-        plio_3x3s2_act      = adf::input_plio::create("in_3x3s2_act", adf::plio_64_bits, "data/act_3x3s2.txt");
-        plio_3x3s2_wt       = adf::input_plio::create("in_3x3s2_wt",  adf::plio_64_bits, "data/wt_3x3s2.txt");
-        plio_3x3s2_bias     = adf::input_plio::create("in_3x3s2_bias", adf::plio_32_bits, "data/bias_3x3s2.txt");
-        plio_3x3s2_rq_mult  = adf::input_plio::create("in_3x3s2_rq_mult", adf::plio_32_bits, "data/rq_mult_3x3s2.txt");
-        plio_3x3s2_rq_shift = adf::input_plio::create("in_3x3s2_rq_shift", adf::plio_32_bits, "data/rq_shift_3x3s2.txt");
-        plio_3x3s2_out      = adf::output_plio::create("out_3x3s2", adf::plio_64_bits, "data/out_3x3s2.txt");
+        // ---- 3×3 stride-2 PLIO Setup (2-tile parallelization) ----
+        plio_3x3s2_act_0      = adf::input_plio::create("in_3x3s2_act_0", adf::plio_64_bits, "data/act_3x3s2_0.txt");
+        plio_3x3s2_act_1      = adf::input_plio::create("in_3x3s2_act_1", adf::plio_64_bits, "data/act_3x3s2_1.txt");
+        plio_3x3s2_wt_0       = adf::input_plio::create("in_3x3s2_wt_0",  adf::plio_64_bits, "data/wt_3x3s2_0.txt");
+        plio_3x3s2_wt_1       = adf::input_plio::create("in_3x3s2_wt_1",  adf::plio_64_bits, "data/wt_3x3s2_1.txt");
+        plio_3x3s2_bias_0     = adf::input_plio::create("in_3x3s2_bias_0", adf::plio_32_bits, "data/bias_3x3s2_0.txt");
+        plio_3x3s2_bias_1     = adf::input_plio::create("in_3x3s2_bias_1", adf::plio_32_bits, "data/bias_3x3s2_1.txt");
+        plio_3x3s2_rq_mult_0  = adf::input_plio::create("in_3x3s2_rq_mult_0", adf::plio_32_bits, "data/rq_mult_3x3s2_0.txt");
+        plio_3x3s2_rq_mult_1  = adf::input_plio::create("in_3x3s2_rq_mult_1", adf::plio_32_bits, "data/rq_mult_3x3s2_1.txt");
+        plio_3x3s2_rq_shift_0 = adf::input_plio::create("in_3x3s2_rq_shift_0", adf::plio_32_bits, "data/rq_shift_3x3s2_0.txt");
+        plio_3x3s2_rq_shift_1 = adf::input_plio::create("in_3x3s2_rq_shift_1", adf::plio_32_bits, "data/rq_shift_3x3s2_1.txt");
+        plio_3x3s2_out_0      = adf::output_plio::create("out_3x3s2_0", adf::plio_64_bits, "data/out_3x3s2_0.txt");
+        plio_3x3s2_out_1      = adf::output_plio::create("out_3x3s2_1", adf::plio_64_bits, "data/out_3x3s2_1.txt");
 
-        adf::connect<>(plio_3x3s2_act.out[0],      g_conv3x3_s2.in_act);
-        adf::connect<>(plio_3x3s2_wt.out[0],       g_conv3x3_s2.in_wt);
-        adf::connect<>(plio_3x3s2_bias.out[0],     g_conv3x3_s2.in_bias);
-        adf::connect<>(plio_3x3s2_rq_mult.out[0],  g_conv3x3_s2.in_rq_mult);
-        adf::connect<>(plio_3x3s2_rq_shift.out[0], g_conv3x3_s2.in_rq_shift);
-        adf::connect<>(g_conv3x3_s2.out_act,       plio_3x3s2_out.in[0]);
+        // Connect first 3x3s2 instance
+        adf::connect<>(plio_3x3s2_act_0.out[0],      g_conv3x3_s2_0.in_act);
+        adf::connect<>(plio_3x3s2_wt_0.out[0],       g_conv3x3_s2_0.in_wt);
+        adf::connect<>(plio_3x3s2_bias_0.out[0],     g_conv3x3_s2_0.in_bias);
+        adf::connect<>(plio_3x3s2_rq_mult_0.out[0],  g_conv3x3_s2_0.in_rq_mult);
+        adf::connect<>(plio_3x3s2_rq_shift_0.out[0], g_conv3x3_s2_0.in_rq_shift);
+        adf::connect<>(g_conv3x3_s2_0.out_act,       plio_3x3s2_out_0.in[0]);
+
+        // Connect second 3x3s2 instance
+        adf::connect<>(plio_3x3s2_act_1.out[0],      g_conv3x3_s2_1.in_act);
+        adf::connect<>(plio_3x3s2_wt_1.out[0],       g_conv3x3_s2_1.in_wt);
+        adf::connect<>(plio_3x3s2_bias_1.out[0],     g_conv3x3_s2_1.in_bias);
+        adf::connect<>(plio_3x3s2_rq_mult_1.out[0],  g_conv3x3_s2_1.in_rq_mult);
+        adf::connect<>(plio_3x3s2_rq_shift_1.out[0], g_conv3x3_s2_1.in_rq_shift);
+        adf::connect<>(g_conv3x3_s2_1.out_act,       plio_3x3s2_out_1.in[0]);
 
         // ---- Elem add PLIO Setup ----
         plio_add_a   = adf::input_plio::create("in_add_a", adf::plio_64_bits, "data/add_a.txt");
@@ -209,6 +224,10 @@ public:
         adf::connect<>(plio_add_a.out[0],   g_elem_add.in_a);
         adf::connect<>(plio_add_b.out[0],   g_elem_add.in_b);
         adf::connect<>(g_elem_add.out_sum,  plio_add_out.in[0]);
+
+        // Core assignments for 2-tile parallelization
+        adf::location<<kernel>(g_conv3x3_s2_0.k) = adf::tile(5, 0);
+        adf::location<<kernel>(g_conv3x3_s2_1.k) = adf::tile(5, 1);
     }
 };
 
