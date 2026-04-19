@@ -1,58 +1,214 @@
-# Shared-Memory RangeNet -> SG-SLAM Contract Plan
+# Shared-Memory RangeNet -> SG-SLAM Contract
 
-This replaces the temporary file/basename `.label` handoff. The target interface is a shared-memory FIFO carrying complete labeled LiDAR frames from `RangeNet` to `SG-SLAM`.
+This replaces the temporary file/basename `.label` handoff. The interface is
+a shared-memory FIFO carrying complete labeled LiDAR frames from `RangeNet`
+to `SG-SLAM`, implemented under `rangenet_sgslam_ipc/`.
 
-## Contract
+## Variant
 
-- Producer: `RangeNet` runtime writes complete labeled frames into a shared-memory ring/FIFO.
-- Consumer: `SG-SLAM` blocks on `blocking_pop()` and processes the next ready frame.
-- One FIFO element = one scan plus its semantic labels.
-- Delivery must remain in capture order during normal operation.
-- Pipeline latency may be multiple scan periods; correctness depends on in-order delivery of complete frames.
+- **SPSC**: one `RangeNet` producer, one `SG-SLAM` consumer.
+- **Drop-oldest**: producer never blocks. When all unheld slots are
+  occupied, the next publish overwrites the oldest unheld slot. The
+  consumer observes this on the next acquire as `skipped_before > 0` and
+  the global `drop_count` atomic is incremented by exactly the number of
+  lost frames.
+- **Zero-copy reads with acquire/release lifetime**: the consumer receives
+  const pointers directly into shared memory and reads in place. While a
+  slot is held, the producer is forbidden from overwriting it; the
+  producer's cursor walks past held slots when picking a victim.
+- **Frame atomicity**: each FIFO element is a complete `(scan, labels)`
+  pair. The consumer never observes a partial frame.
 
 ## Frame Payload
 
-Each FIFO element must contain:
+Each FIFO element contains:
 
 - `num_points`
-- point cloud in original point order
-- one semantic label per point, same order
-- optional `timestamp` and `frame_id` for diagnostics
+- point cloud in original point order, `float[num_points][4]` (x, y, z, remission)
+- one `int32` semantic label per point, same order
+- `frame_id`, `capture_ns` (sensor timestamp), `publish_ns` (CLOCK_MONOTONIC)
 
 Label rules:
 
-- use raw `SemanticKITTI` IDs
-- store one `int32` label per point
-- do not pre-remap to `SG-SLAM` reduced IDs
+- raw `SemanticKITTI` IDs (no pre-remap to `SG-SLAM` reduced IDs)
 - `SG-SLAM` keeps ownership of label remap and filtering
+- the `flags` field carries `RNSG_FLAG_RAW_SEMANTICKITTI_LABELS` so the
+  consumer can detect a producer that ever ships pre-remapped IDs
 
-## FIFO Rules
+### Frame indexing: sparse `frame_id` vs dense `consumed_index`
 
-- If FIFO is empty, `SG-SLAM` waits.
-- If FIFO is full, producer or upstream capture stalls.
-- Do not drop only scans or only labels.
-- Start, stop, and reset only at frame boundaries.
+The consumer-side `rnsg_frame_view` exposes two distinct counters per
+acquired frame; mixing them up corrupts SG-SLAM's pose graph silently.
+
+| Field            | Source                  | Density under drops      | Use for                                                      |
+|------------------|-------------------------|--------------------------|--------------------------------------------------------------|
+| `frame_id`       | producer-assigned       | SPARSE (gaps on drops)   | back-reference to producer source (KITTI scan id, log line)  |
+| `consumed_index` | consumer-side counter   | DENSE (0, 1, 2, ...)     | structural indexing: pose vectors, GTSAM keys, file outputs  |
+| `skipped_before` | per-acquire delta       | n/a                      | adapting motion priors, gating thresholds, drop diagnostics  |
+
+`frame_id` is whatever the producer stamped at publish time. Under
+drop-oldest the consumer sees `frame_id` jump by `(skipped_before + 1)`
+on every successful acquire that follows a drop. It is therefore unsafe
+to use `frame_id` as an index into any vector grown one-per-acquire on
+the consumer side.
+
+`consumed_index` is the IPC layer's per-consumer dense counter. It starts
+at 0 on the first successful acquire and increments by exactly 1 on
+every successful acquire, regardless of how many producer frames were
+overwritten between acquires. This is the index SG-SLAM must use for:
+
+- `poses_vec_[consumed_index]` and the `poses_vec_[consumed_index - 1]`
+  previous-pose lookup feeding the GTSAM `BetweenFactor`.
+- GTSAM keys: `BetweenFactor<Pose3>(consumed_index - 1, consumed_index, ...)`
+  and `initial.insert(consumed_index, ...)`. Using `frame_id` here would
+  create orphaned keys (e.g. keys 1..7 missing after a 7-frame drop)
+  and the BetweenFactor would connect existing keys across the gap with
+  the wrong relative pose.
+- Boolean per-frame vectors such as `is_keyframe_vec[consumed_index]`.
+- Per-frame artifact filenames (trajectory dumps, scan snapshots) where
+  the consumer wants a contiguous index regardless of producer-side gaps.
+
+If you need both — a dense GTSAM key and the producer's `frame_id` for
+traceability back to the source scan file — store both in the
+back-end's per-frame struct, e.g. `{cloud_id = consumed_index,
+source_frame_id = frame_id, ...}`. The current `SemGraphSLAM` back-end
+already routes a `cloud_id` value through its queue; that `cloud_id` is
+exactly the field that should be set to `consumed_index`, not
+`frame_id`.
+
+## Wire layout
+
+One POSIX shm region per ring. Layout:
+
+```
+[ struct rnsg_ctl              ]   fixed-size control block
+[ slot_seq[slot_count]         ]   per-slot atomic state (see below)
+[ pad to page                  ]
+[ slot 0: header + points + labels ]
+[ slot 1: ... ]
+...
+```
+
+`rnsg_slot_header` is fixed-layout with explicit `points_offset` and
+`labels_offset` so future versions can extend the payload without breaking
+older readers (`magic` + `version` are checked on every acquire).
+
+## Per-slot atomic encoding
+
+Each slot has one `_Atomic uint64_t slot_seq[i]`:
+
+| Value                       | Meaning                                                  |
+|-----------------------------|----------------------------------------------------------|
+| `0`                         | empty / mid-write / freshly released                     |
+| `seq + 1` (low 63 bits)     | published with sequence `seq`, available for acquire     |
+| `HELD_BIT | (seq + 1)`      | currently held by consumer; producer must not overwrite  |
+
+The `+1` offset reserves `0` as the "no readable frame" sentinel.
+
+Producer claim: `CAS(cur -> 0)` on the next non-`HELD` slot in cursor order.
+Consumer claim: `CAS(seq+1 -> seq+1 | HELD_BIT)` on the slot with the
+lowest `seq >= consumer_next`. Under SPSC, CAS contention is bounded to a
+single retry per operation.
+
+## Ring rules
+
+- If no slot has `seq >= consumer_next`, `SG-SLAM` waits on a POSIX
+  semaphore that the producer posts after every publish.
+- Producer never blocks: drop-oldest. Held slots are always preserved.
+- Each slot is atomic — never deliver a scan without its labels.
+- Start, stop, and reset only at frame boundaries. `rnsg_close()`
+  automatically releases any still-held slot so a clean shutdown does not
+  permanently lose ring capacity.
 
 Sizing rule:
 
-`fifo_depth >= ceil(segmentation_latency / scan_period) + margin`
+```
+slot_count - 1 >= ceil(segmentation_latency / scan_period) + margin
+```
+
+The `-1` accounts for the slot the consumer holds during processing. With
+SPSC and 1 held slot, effective working depth is `slot_count - 1`.
+`slot_count` must be a power of two and `>= 2`.
 
 ## Concurrency Model
 
-- Preferred topology: `SPSC` (`RangeNet` producer, `SG-SLAM` consumer).
-- If implemented lock-free, write against the language memory model, not handwritten ISA-specific synchronization.
-- Producer writes payload first, then publishes readiness or tail update with `release`.
-- Consumer observes readiness or tail with `acquire`, then reads the payload.
-- `Rust` or `C++` are both acceptable if they use correct atomics.
-- Re-evaluate the design if the queue becomes `MPMC` or crosses a CPU <-> FPGA DMA/MMIO boundary.
+- Producer-only writers: `head_seq`, the seq portion of `slot_seq[i]`
+  during publish, and the slot's payload bytes.
+- Consumer-only writers: `tail_seq` (observability mirror), the `HELD_BIT`
+  on the slot it claims, and the release-store of `0` to free a slot.
+- Atomics use the C11 memory model (`memory_order_acquire` /
+  `memory_order_release` / `memory_order_acq_rel`). No handwritten
+  ISA-specific fences.
+- Producer publish ordering: write payload -> release-store seq into
+  `slot_seq[i]` -> release-store `head_seq` -> `sem_post`.
+- Consumer acquire ordering: acquire-load `head_seq` -> scan
+  `slot_seq[*]` with acquire -> CAS `slot_seq[best]` with acquire on
+  success -> read header from shm.
+- Consumer release ordering: release-store `0` to `slot_seq[held]` so all
+  earlier reads from the slot happen-before the producer's next claim.
+- Re-evaluate the design if the queue becomes MPMC or crosses a
+  CPU <-> FPGA DMA/MMIO boundary. The current acquire/release lifetime
+  carries over directly to AIE/PL backends: only the slot allocator
+  changes (POSIX shm -> XRT buffer object).
+
+## API surface
+
+C ABI (`rangenet_sgslam_ipc/include/rnsg_ipc.h`), reused from both Python
+(via `ctypes`) and C++:
+
+- Lifecycle: `rnsg_create`, `rnsg_open`, `rnsg_close`, `rnsg_unlink`.
+- Producer: `rnsg_producer_lease(ring, &slot_view)` returns mutable
+  pointers into the next claimed slot; `rnsg_producer_publish(ring,
+  num_points, capture_ns, frame_id, flags)` commits.
+- Consumer: `rnsg_consumer_acquire(ring, timeout_ns, &frame_view)`
+  returns `const` pointers directly into shm;
+  `rnsg_consumer_release(ring)` returns the slot to the producer pool.
+- Introspection: `rnsg_drop_count`, `rnsg_head_seq`, `rnsg_tail_seq`,
+  `rnsg_slot_count`, `rnsg_capacity_points`, `rnsg_slot_bytes`.
+- Errors: `RNSG_TIMEOUT`, `RNSG_E_BUSY` (acquire-while-holding or
+  release-while-not-holding), plus standard invalid/IO/version codes.
+
+Single-producer and single-consumer enforced at the API boundary by
+`RNSG_E_BUSY` on lease-while-leased and acquire-while-holding.
 
 ## SG-SLAM Integration
 
-- Replace basename-based `loadCloud(<frame>.bin, <frame>.label)` with shared-memory `blocking_pop()`.
-- Keep `mainProcess(frame, labels, timestamps, dataset)` unchanged as much as possible.
-- Remove artificial playback pacing from the hot path; process each frame as soon as a complete labeled frame is ready.
+- Replace basename-based `loadCloud(<frame>.bin, <frame>.label)` with a
+  `FrameSource` abstraction whose shm implementation calls
+  `rnsg_consumer_acquire` and exposes `points` / `labels` as `const`
+  spans into shm. `mainProcess(frame, labels, timestamps, dataset)`
+  remains unchanged.
+- The consumer must finish all reads (including the per-point
+  `Eigen::Vector3d` construction) before calling `release`. RAII-shape the
+  C++ wrapper so missed releases cannot occur on exception unwinding.
+- Remove artificial playback pacing from the hot path; process each frame
+  as soon as a complete labeled frame is ready.
+- **Set `cloudInd = rnsg_frame_view::consumed_index`** (the dense
+  per-consumer counter), not `frame_id`. This keeps `poses_vec_`,
+  `is_keyframe_vec`, the GTSAM `BetweenFactor(cloudInd-1, cloudInd, ...)`
+  keys, and `initial.insert(cloudInd, ...)` all referring to a contiguous
+  index space even when the IPC layer drops frames under producer overrun.
+  Carry the producer's `frame_id` separately (e.g. add a `source_frame_id`
+  field to the back-end queue struct) if you need traceability back to the
+  source scan file.
+- Dropped frames do not create a wrong "velocity output" in `SG-SLAM`, but
+  they do make registration harder: the front-end warm-starts scan matching
+  from the last relative pose only, with no explicit scaling by elapsed time
+  or `skipped_before`. Regular decimation may still converge, but large or
+  uneven gaps can make the initial guess worse and reduce scan-to-map
+  convergence robustness.
+- The file-based `.label` path stays available behind the same
+  `FrameSource` polymorphism for offline replay and CI.
 
 ## Notes
 
-- A sideband `frame_id` is optional if the pipeline is strictly in-order, but recommended as a cheap sync check.
-- The key invariant is simple: `scan_i` must always be paired with `label_i`.
+- The key invariant remains: `scan_i` must always be paired with
+  `label_i`.
+- `frame_id` is mandatory in this implementation (sized into the slot
+  header) and lets the consumer detect any out-of-order delivery cheaply.
+  It is producer-assigned and SPARSE under drop-oldest. Use
+  `consumed_index` for any consumer-side structural indexing; see
+  "Frame indexing" above.
+- Defaults: `slot_count = 4`, `capacity_points = 200000`. Each slot is
+  `sizeof(header) + capacity_points * (16 + 4)` bytes ~ 4 MB; total ring
+  footprint ~ `slot_count * slot_bytes` ~ 16 MB.

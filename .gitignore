@@ -5,3 +5,8 @@ sgslam_runs/
 fpga/golden_vectors/
 fpga/weights/
 fpga/model_fused.onnx
+
+# build outputs and caches
+build/
+__pycache__/
+*.pyc
