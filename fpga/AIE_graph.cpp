@@ -226,8 +226,8 @@ public:
         adf::connect<>(g_elem_add.out_sum,  plio_add_out.in[0]);
 
         // Core assignments for 2-tile parallelization
-        adf::location<<kernel>(g_conv3x3_s2_0.k) = adf::tile(5, 0);
-        adf::location<<kernel>(g_conv3x3_s2_1.k) = adf::tile(5, 1);
+        adf::location<adf::kernel>(g_conv3x3_s2_0.k) = adf::tile(5, 0);
+        adf::location<adf::kernel>(g_conv3x3_s2_1.k) = adf::tile(5, 1);
     }
 };
 
