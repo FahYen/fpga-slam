@@ -5,5 +5,5 @@ add_executable(benchmark_buildgraph
     ${PROJECT_SOURCE_DIR}/frontend/SemGraph.cpp
 )
 
-target_link_libraries(benchmark_buildgraph PRIVATE Eigen3::Eigen)
+target_link_libraries(benchmark_buildgraph PRIVATE Eigen3::Eigen TBB::tbb)
 set_global_target_properties(benchmark_buildgraph)

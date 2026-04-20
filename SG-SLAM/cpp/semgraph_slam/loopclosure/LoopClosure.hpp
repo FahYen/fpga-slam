@@ -59,10 +59,10 @@ std::tuple<V3d_i,V3d_i> FindCorrespondencesWithIdx(const Graph &graph1, const Gr
 std::tuple<V3d_i,V3d_i> OutlierPruning(const Graph &graph1, const Graph &graph2, V3d_i match_node1, V3d_i match_node2);
 
 
-double fastAtan2( const double &y, const double &x);
-double GetCosSim(const std::vector<float> vec1, const std::vector<float> vec2);
+double fastAtan2(const double &y, const double &x);
+double GetCosSim(const std::vector<float> &vec1, const std::vector<float> &vec2);
 double CalcaulateSim(const Eigen::MatrixXf &desc1, const Eigen::MatrixXf &desc2);
-double GetMold(const std::vector<int> vec);
-double GetMold(const std::vector<float> vec);
+double GetMold(const std::vector<int> &vec);
+double GetMold(const std::vector<float> &vec);
 
 }

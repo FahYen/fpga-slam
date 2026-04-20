@@ -1,0 +1,14 @@
+===== nodes=256 =====
+buildgraph_benchmark_result
+nodes_per_frame=256
+timed_frames=150
+warmup_frames=20
+avg_ms=12.5655
+p50_ms=12.4212
+p95_ms=12.9526
+approx_fps=79.5833
+avg_us_per_node=49.0838
+avg_ns_per_pair=191.7336
+last_graph_nodes=256
+last_graph_edges=15636
+last_graph_edge_density=0.4790

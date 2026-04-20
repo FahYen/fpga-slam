@@ -1,0 +1,11 @@
+===== nodes=128 =====
+buildgraph_benchmark_result
+nodes_per_frame=128
+timed_frames=150
+warmup_frames=20
+avg_ms=2.7769
+p50_ms=2.7080
+p95_ms=3.0281
+approx_fps=360.1185
+last_graph_nodes=128
+last_graph_edges=3781

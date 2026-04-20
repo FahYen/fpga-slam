@@ -4,9 +4,73 @@
 
 #include "LoopClosure.hpp"
 
-
+#include <tbb/parallel_for.h>
 
 namespace graph_slam{
+
+namespace {
+
+constexpr double kNoMatchCost = 1e8;
+constexpr double kMaxDescriptorCost = 0.5;
+constexpr double kMaxDimensionDelta = 2.0;
+
+double GetCosSimWithNorms(const std::vector<float> &vec1,
+                          const std::vector<float> &vec2,
+                          double vec1_norm,
+                          double vec2_norm) {
+    assert(vec1.size() == vec2.size());
+    double dot = 0.0;
+    for (size_t i = 0; i < vec1.size(); ++i) {
+        dot += vec1[i] * vec2[i];
+    }
+    return dot / (vec1_norm * vec2_norm);
+}
+
+std::vector<double> ComputeDescriptorNorms(const std::vector<std::vector<float>> &descriptors) {
+    std::vector<double> norms(descriptors.size(), 1e-11);
+    tbb::parallel_for(size_t(0), descriptors.size(), [&](size_t i) {
+        double sum = 0.0;
+        for (const float value : descriptors[i]) {
+            sum += static_cast<double>(value) * static_cast<double>(value);
+        }
+        const double norm = std::sqrt(sum);
+        norms[i] = norm == 0.0 ? 1e-11 : norm;
+    });
+    return norms;
+}
+
+std::vector<std::vector<double>> BuildAssociationCostMatrix(const Graph &graph1, const Graph &graph2) {
+    std::vector<std::vector<double>> associationCost_Matrix(
+        graph1.node_desc.size(), std::vector<double>(graph2.node_desc.size(), kNoMatchCost));
+    if (graph1.node_desc.empty() || graph2.node_desc.empty()) return associationCost_Matrix;
+
+    const auto graph1_norms = ComputeDescriptorNorms(graph1.node_desc);
+    const auto graph2_norms = ComputeDescriptorNorms(graph2.node_desc);
+
+    tbb::parallel_for(size_t(0), graph1.node_desc.size(), [&](size_t i) {
+        auto &row = associationCost_Matrix[i];
+        for (size_t j = 0; j < graph2.node_desc.size(); ++j) {
+            if (graph1.node_labels[i] != graph2.node_labels[j]) continue;
+            if (std::abs(graph1.node_dimensions[i].x() - graph2.node_dimensions[j].x()) > kMaxDimensionDelta ||
+                std::abs(graph1.node_dimensions[i].y() - graph2.node_dimensions[j].y()) > kMaxDimensionDelta ||
+                std::abs(graph1.node_dimensions[i].z() - graph2.node_dimensions[j].z()) > kMaxDimensionDelta) {
+                continue;
+            }
+
+            const double node_des_cost =
+                1.0 - GetCosSimWithNorms(graph1.node_desc[i],
+                                         graph2.node_desc[j],
+                                         graph1_norms[i],
+                                         graph2_norms[j]);
+            if (node_des_cost > kMaxDescriptorCost || node_des_cost < 0.0) continue;
+            row[j] = node_des_cost;
+        }
+    });
+
+    return associationCost_Matrix;
+}
+
+}  // namespace
 
 
 /*
@@ -260,24 +324,7 @@ std::tuple<V3d_i,V3d_i> FindCorrespondencesWithIdx(const Graph &graph1, const Gr
     // TODO(M1-FPGA): associationCost_Matrix generation is regular and parallel-friendly.
     // Keep matrix dimensions bounded for HLS (static max node count) and benchmark this
     // stage independently from Hungarian solve.
-    std::vector<std::vector<double>> associationCost_Matrix;
-    associationCost_Matrix.resize(graph1.node_desc.size(),std::vector<double>(graph2.node_desc.size(),0));
-
-    for(size_t i=0;i<graph1.node_desc.size();i++){
-        for(size_t j=0;j<graph2.node_desc.size();j++){
-            if(graph1.node_labels[i] == graph2.node_labels[j]){ // check node's label
-                double node_des_cost = 1 - GetCosSim(graph1.node_desc[i],graph2.node_desc[j]); 
-                if(node_des_cost > 0.5 || node_des_cost < 0) node_des_cost = 1e8;
-                if(std::abs(graph1.node_dimensions[i].x()-graph2.node_dimensions[j].x())>2 ||
-                        std::abs(graph1.node_dimensions[i].y()-graph2.node_dimensions[j].y())>2 ||
-                            std::abs(graph1.node_dimensions[i].z()-graph2.node_dimensions[j].z())>2) node_des_cost = 1e8;
-                associationCost_Matrix[i][j] = node_des_cost;
-            }
-            else{
-                associationCost_Matrix[i][j] = 1e8;
-            }
-        }
-    }
+    auto associationCost_Matrix = BuildAssociationCostMatrix(graph1, graph2);
     // TODO(M1-FPGA): Hungarian solve has dynamic control flow and is harder for HLS.
     // Near-term plan: keep Hungarian on CPU while offloading cost matrix generation.
     // use Hungarian algorithm solve optimal correnpondences
@@ -292,7 +339,7 @@ std::tuple<V3d_i,V3d_i> FindCorrespondencesWithIdx(const Graph &graph1, const Gr
     std::vector<int> query_nodes_idx;
     std::vector<int> match_nodes_idx;
     for(size_t i=0;i<graph1.node_desc.size();i++){
-        if(assignment[i]!=-1 && associationCost_Matrix[i][assignment[i]]<1e8){
+        if(assignment[i]!=-1 && associationCost_Matrix[i][assignment[i]]<kNoMatchCost){
             query_nodes_center.emplace_back(graph1.node_centers[i]);
             query_nodes_idx.emplace_back(i);
             match_nodes_center.emplace_back(graph2.node_centers[assignment[i]]);
@@ -416,17 +463,12 @@ std::tuple<V3d_i,V3d_i> OutlierPruning(const Graph &graph1, const Graph &graph2,
 
 
 // claculate cosine similiraty
-double GetCosSim(const std::vector<float> vec1, const std::vector<float> vec2){
+double GetCosSim(const std::vector<float> &vec1, const std::vector<float> &vec2){
     assert(vec1.size()==vec2.size());
-    double tmp= 0.0;
-    for(size_t i=0;i<vec1.size();i++){
-        tmp += vec1[i]*vec2[i];
-    }
-    double simility = tmp / (GetMold(vec1)*GetMold(vec2));
-    return simility;
+    return GetCosSimWithNorms(vec1, vec2, GetMold(vec1), GetMold(vec2));
 }
 
-double GetMold(const std::vector<int> vec){
+double GetMold(const std::vector<int> &vec){
     double sum = 0.0;
     for(size_t i=0;i<vec.size();i++){
         sum += vec[i]*vec[i];
@@ -435,7 +477,7 @@ double GetMold(const std::vector<int> vec){
     return std::sqrt(sum);
 }
 
-double GetMold(const std::vector<float> vec){
+double GetMold(const std::vector<float> &vec){
     double sum = 0.0;
     for(size_t i=0;i<vec.size();i++){
         sum += vec[i]*vec[i];

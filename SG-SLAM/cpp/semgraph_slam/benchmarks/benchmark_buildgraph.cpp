@@ -222,6 +222,17 @@ int main(int argc, char **argv) {
     // Approximate throughput (frames/sec) from average latency.
     // 1000 ms / avg_ms gives frames processed per second.
     const double fps = avg_ms > 0.0 ? 1000.0 / avg_ms : 0.0;
+    const double us_per_node =
+        cfg.nodes > 0 ? (avg_ms * 1000.0) / static_cast<double>(cfg.nodes) : 0.0;
+    const double pairwise_checks =
+        static_cast<double>(cfg.nodes) * static_cast<double>(cfg.nodes);
+    const double ns_per_pair =
+        pairwise_checks > 0.0 ? (avg_ms * 1'000'000.0) / pairwise_checks : 0.0;
+    const double max_edges =
+        cfg.nodes > 1 ? (static_cast<double>(cfg.nodes) * static_cast<double>(cfg.nodes - 1U)) / 2.0
+                      : 0.0;
+    const double edge_density =
+        max_edges > 0.0 ? static_cast<double>(output_edges) / max_edges : 0.0;
 
     // 5) Emit machine-readable key=value output for easy parsing in scripts.
     std::cout << std::fixed << std::setprecision(4);
@@ -233,8 +244,11 @@ int main(int argc, char **argv) {
     std::cout << "p50_ms=" << p50_ms << "\n";
     std::cout << "p95_ms=" << p95_ms << "\n";
     std::cout << "approx_fps=" << fps << "\n";
+    std::cout << "avg_us_per_node=" << us_per_node << "\n";
+    std::cout << "avg_ns_per_pair=" << ns_per_pair << "\n";
     std::cout << "last_graph_nodes=" << output_nodes << "\n";
     std::cout << "last_graph_edges=" << output_edges << "\n";
+    std::cout << "last_graph_edge_density=" << edge_density << "\n";
 
     return 0;
 }

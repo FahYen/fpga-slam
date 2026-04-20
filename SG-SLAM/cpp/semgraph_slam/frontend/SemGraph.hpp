@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include <iostream>
-#include <vector>
 #include <Eigen/Dense>
+#include <iostream>
 #include <numeric>
+#include <vector>
  
 #include "semgraph_slam/core/Coreutils.h"
 
@@ -14,7 +14,7 @@
 namespace graph_slam{
 
 
-Eigen::MatrixXd MatrixDecomposing(Eigen::MatrixXd MatrixInput,int Dimension);
+Eigen::MatrixXd MatrixDecomposing(const Eigen::MatrixXd &MatrixInput, int Dimension);
 Graph BuildGraph(const std::vector<Bbox> &cluster_boxes, double edge_dis_th,int subinterval,int graph_node_dimension,double subgraph_edge_th);
 Graph ReBuildGraph(const std::vector<InsNode> &cluster_boxes, double edge_dis_th,int subinterval,int graph_node_dimension,double subgraph_edge_th);
 }
