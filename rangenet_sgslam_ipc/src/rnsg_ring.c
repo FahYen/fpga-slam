@@ -19,8 +19,9 @@
  * The +1 offset reserves 0 as the "no readable frame" sentinel.
  *
  * Producer publish:
- *   - Walk a private cursor, skipping any slot whose HELD_BIT is set.
- *   - CAS the chosen slot's atom to 0 to claim it for writing (this also
+ *   - Scan in cursor order, first preferring any free slot (slot_seq == 0).
+ *   - If no free slot exists, pick the oldest non-held slot (lowest seq).
+ *   - CAS an occupied victim's atom to 0 to claim it for writing (this also
  *     hides any old seq from the consumer's scan).
  *   - Write the header and payload.
  *   - Release-store (head_seq + 1) into the slot's atom to publish.
@@ -333,48 +334,70 @@ rnsg_status rnsg_producer_lease(rnsg_ring *r, rnsg_slot_view *out) {
 
     uint32_t slot_count = r->ctl->slot_count;
 
-    /* Walk the cursor forward, skipping any slot whose HELD_BIT is set.
-     * Bound the walk to slot_count attempts; with SPSC and at most one held
-     * slot we always succeed in <= 2 attempts, but we also defend against
-     * a buggy consumer that holds more than expected. */
-    for (uint32_t tries = 0; tries < slot_count; ++tries) {
-        uint32_t slot_idx = r->producer_cursor;
-        r->producer_cursor = (r->producer_cursor + 1u) & (slot_count - 1u);
+    for (;;) {
+        uint32_t free_slot   = RNSG_NO_HELD_SLOT;
+        uint32_t oldest_slot = RNSG_NO_HELD_SLOT;
+        uint64_t oldest_tag  = UINT64_MAX; /* seq + 1; lower means older */
 
-        uint64_t cur = atomic_load_explicit(&r->ctl->slot_seq[slot_idx],
-                                            memory_order_acquire);
-        if (cur & RNSG_HELD_BIT) continue;
-
-        /* Try to claim by setting the slot to "writing" (0). The CAS races
-         * only with the consumer's acquire CAS on this same slot. On
-         * failure, loop and consider the next cursor position. */
-        uint64_t expected = cur;
-        if (atomic_compare_exchange_strong_explicit(
-                &r->ctl->slot_seq[slot_idx],
-                &expected, 0,
-                memory_order_acq_rel, memory_order_relaxed)) {
-            uint8_t *p = slot_ptr(r, slot_idx);
-            rnsg_slot_header *hdr = (rnsg_slot_header *)p;
-            hdr->magic         = RNSG_MAGIC;
-            hdr->version       = RNSG_VERSION;
-            hdr->points_offset = (uint64_t)sizeof(rnsg_slot_header);
-            hdr->labels_offset = hdr->points_offset
-                               + (uint64_t)r->ctl->capacity_points * 4u * sizeof(float);
-
-            out->slot_idx        = slot_idx;
-            out->capacity_points = (uint32_t)r->ctl->capacity_points;
-            out->header          = hdr;
-            out->points          = (float *)(p + hdr->points_offset);
-            out->labels          = (int32_t *)(p + hdr->labels_offset);
-
-            r->producer_leased     = 1;
-            r->producer_leased_idx = slot_idx;
-            return RNSG_OK;
+        /* Pick the first free slot in cursor order. If none exist, fall back
+         * to the oldest readable-but-unheld slot so we truly drop-oldest.
+         * Held slots are never considered writable. */
+        for (uint32_t off = 0; off < slot_count; ++off) {
+            uint32_t slot_idx = (r->producer_cursor + off) & (slot_count - 1u);
+            uint64_t cur = atomic_load_explicit(&r->ctl->slot_seq[slot_idx],
+                                                memory_order_acquire);
+            if (cur == 0) {
+                free_slot = slot_idx;
+                break;
+            }
+            if (cur & RNSG_HELD_BIT) continue;
+            if (cur < oldest_tag) {
+                oldest_tag  = cur;
+                oldest_slot = slot_idx;
+            }
         }
-        /* CAS failed: the value was changed (consumer acquired). Try next slot. */
-    }
 
-    return RNSG_E_FULL;
+        uint32_t slot_idx;
+        if (free_slot != RNSG_NO_HELD_SLOT) {
+            /* slot_seq == 0 is already invisible to the consumer, so in SPSC
+             * the producer can lease it directly without an extra CAS. */
+            slot_idx = free_slot;
+        } else if (oldest_slot != RNSG_NO_HELD_SLOT) {
+            /* Reclaim the oldest unheld published slot. If the consumer
+             * claimed it after our scan, retry the selection. */
+            uint64_t expected = oldest_tag;
+            if (!atomic_compare_exchange_strong_explicit(
+                    &r->ctl->slot_seq[oldest_slot],
+                    &expected, 0,
+                    memory_order_acq_rel, memory_order_relaxed)) {
+                sched_yield();
+                continue;
+            }
+            slot_idx = oldest_slot;
+        } else {
+            return RNSG_E_FULL;
+        }
+
+        r->producer_cursor = (slot_idx + 1u) & (slot_count - 1u);
+
+        uint8_t *p = slot_ptr(r, slot_idx);
+        rnsg_slot_header *hdr = (rnsg_slot_header *)p;
+        hdr->magic         = RNSG_MAGIC;
+        hdr->version       = RNSG_VERSION;
+        hdr->points_offset = (uint64_t)sizeof(rnsg_slot_header);
+        hdr->labels_offset = hdr->points_offset
+                           + (uint64_t)r->ctl->capacity_points * 4u * sizeof(float);
+
+        out->slot_idx        = slot_idx;
+        out->capacity_points = (uint32_t)r->ctl->capacity_points;
+        out->header          = hdr;
+        out->points          = (float *)(p + hdr->points_offset);
+        out->labels          = (int32_t *)(p + hdr->labels_offset);
+
+        r->producer_leased     = 1;
+        r->producer_leased_idx = slot_idx;
+        return RNSG_OK;
+    }
 }
 
 rnsg_status rnsg_producer_publish(rnsg_ring *r,

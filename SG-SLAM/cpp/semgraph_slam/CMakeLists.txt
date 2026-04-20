@@ -53,6 +53,7 @@ add_subdirectory(core)
 add_subdirectory(frontend)
 add_subdirectory(loopclosure)
 add_subdirectory(pipeline)
+add_subdirectory(apps)
 
 if(ENABLE_MILESTONE1_BENCHMARKS)
 	add_subdirectory(benchmarks)

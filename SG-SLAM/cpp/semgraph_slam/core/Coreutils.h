@@ -4,6 +4,8 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace graph_slam{
@@ -34,6 +36,12 @@ namespace graph_slam{
 typedef std::pair<std::vector<Eigen::Vector3d>,std::vector<int>> V3d_i;
 typedef std::vector<Eigen::Vector4d> V4d;
 typedef  std::vector<Eigen::Vector3d> V3d;
+
+struct BorrowedFrameView {
+    const float *points_xyzi = nullptr;
+    const std::int32_t *raw_labels = nullptr;
+    std::size_t num_points = 0;
+};
 
 
 // Hash function for Eigen::Vector3i

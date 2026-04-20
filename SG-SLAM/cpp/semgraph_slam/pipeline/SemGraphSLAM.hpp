@@ -85,6 +85,9 @@ public:
 public:
 
     V3d_i_pair_graph mainProcess(const V3d &frame,const std::vector<int> &frame_label,const std::vector<double> &timestamps,std::string dataset);
+    V3d_i_pair_graph mainProcess(const BorrowedFrameView &frame,
+                                 const std::vector<double> &timestamps,
+                                 std::string dataset);
     
     V3d_i_tuple VoxelizeSemantic(const V3d_i &frame) const;
 

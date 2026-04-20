@@ -5,7 +5,9 @@
  * via ctypes) and the C++ consumer (today, via direct linkage).
  *
  * Variant: SPSC, drop-oldest, zero-copy with acquire/release lifetime.
- *   - Producer never blocks. It overwrites the oldest non-held slot.
+ *   - Producer never blocks. It first reuses any free slot; only when every
+ *     unheld slot still contains unread data does it overwrite the oldest
+ *     non-held slot.
  *   - Consumer holds at most one slot at a time. While held, the producer
  *     is forbidden from overwriting that slot.
  *   - Consumer reads the slot's payload directly from shared memory through
@@ -203,10 +205,10 @@ uint64_t rnsg_tail_seq(const rnsg_ring *r);  /* total successful acquires (consu
  * Lease the next slot for writing. The same slot is returned for every call
  * until rnsg_producer_publish() (or rnsg_close()) is invoked.
  *
- * The library walks the producer's cursor forward, skipping any slot the
- * consumer currently holds, and CAS-claims the first non-held slot. While
- * leased, the slot's per-slot atom is set so any concurrent consumer
- * scan/CAS will not pick the slot.
+ * The library prefers a free slot (slot_seq == 0), searching in producer
+ * cursor order for locality. If none are free, it overwrites the oldest
+ * non-held published slot. Held slots are never reused. While leased, the
+ * slot remains unreadable to the consumer.
  *
  * Returns RNSG_E_FULL only in the impossible (with SPSC) case where every
  * slot is simultaneously held; caller should treat this as a programmer

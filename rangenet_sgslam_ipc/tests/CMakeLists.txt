@@ -16,6 +16,12 @@ target_compile_options(test_held_slot PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME rnsg_held_slot COMMAND test_held_slot)
 set_tests_properties(rnsg_held_slot PROPERTIES TIMEOUT 30)
 
+add_executable(test_reuse_released_slot test_reuse_released_slot.c)
+target_link_libraries(test_reuse_released_slot PRIVATE rnsg_ipc)
+target_compile_options(test_reuse_released_slot PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME rnsg_reuse_released_slot COMMAND test_reuse_released_slot)
+set_tests_properties(rnsg_reuse_released_slot PROPERTIES TIMEOUT 30)
+
 # Python two-process round-trip. Requires the just-built shared library on path.
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)

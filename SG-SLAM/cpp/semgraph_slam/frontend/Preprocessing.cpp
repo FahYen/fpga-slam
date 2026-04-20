@@ -35,6 +35,7 @@
 #include <iostream>
 #include <omp.h>
 
+#include "semgraph_slam/core/SemanticKitti.hpp"
 
 namespace {
 using Voxel = Eigen::Vector3i;
@@ -124,6 +125,51 @@ V3d_i PreprocessSemantic(const std::vector<Eigen::Vector3d> &frame,
     return std::make_pair(inliers,inliers_label);
 }
 
+V3d_i PreprocessSemantic(const std::vector<Eigen::Vector3d> &frame,
+                                        const std::int32_t *raw_labels,
+                                        std::size_t label_count,
+                                        double max_range,
+                                        double min_range) {
+    assert(frame.size() == label_count);
+    std::vector<Eigen::Vector3d> inliers;
+    std::vector<int> inliers_label;
+    inliers.reserve(frame.size());
+    inliers_label.reserve(frame.size());
+
+    for (std::size_t i = 0; i < frame.size(); ++i) {
+        const double norm = frame[i].norm();
+        const int label = RemapSemanticKittiLabel(raw_labels[i]);
+        if (norm < max_range && norm > min_range && label < 20) {
+            inliers.emplace_back(frame[i]);
+            inliers_label.emplace_back(label);
+        }
+    }
+
+    return std::make_pair(inliers, inliers_label);
+}
+
+V3d_i PreprocessSemantic(const BorrowedFrameView &frame,
+                                        double max_range,
+                                        double min_range) {
+    std::vector<Eigen::Vector3d> inliers;
+    std::vector<int> inliers_label;
+    inliers.reserve(frame.num_points);
+    inliers_label.reserve(frame.num_points);
+
+    for (std::size_t i = 0; i < frame.num_points; ++i) {
+        const float *point = frame.points_xyzi + (i * 4U);
+        const Eigen::Vector3d point_xyz(point[0], point[1], point[2]);
+        const double norm = point_xyz.norm();
+        const int label = RemapSemanticKittiLabel(frame.raw_labels[i]);
+        if (norm < max_range && norm > min_range && label < 20) {
+            inliers.emplace_back(point_xyz);
+            inliers_label.emplace_back(label);
+        }
+    }
+
+    return std::make_pair(inliers, inliers_label);
+}
+
 std::vector<Eigen::Vector3d> CorrectKITTIScan(const std::vector<Eigen::Vector3d> &frame) {
     constexpr double VERTICAL_ANGLE_OFFSET = (0.205 * M_PI) / 180.0;
     std::vector<Eigen::Vector3d> corrected_frame(frame.size());
@@ -132,6 +178,19 @@ std::vector<Eigen::Vector3d> CorrectKITTIScan(const std::vector<Eigen::Vector3d>
         const Eigen::Vector3d rotationVector = pt.cross(Eigen::Vector3d(0., 0., 1.));
         corrected_frame[i] =
             Eigen::AngleAxisd(VERTICAL_ANGLE_OFFSET, rotationVector.normalized()) * pt;
+    });
+    return corrected_frame;
+}
+
+std::vector<Eigen::Vector3d> CorrectKITTIScan(const BorrowedFrameView &frame) {
+    constexpr double VERTICAL_ANGLE_OFFSET = (0.205 * M_PI) / 180.0;
+    std::vector<Eigen::Vector3d> corrected_frame(frame.num_points);
+    tbb::parallel_for(std::size_t(0), frame.num_points, [&](std::size_t i) {
+        const float *point = frame.points_xyzi + (i * 4U);
+        const Eigen::Vector3d pt(point[0], point[1], point[2]);
+        const Eigen::Vector3d rotation_vector = pt.cross(Eigen::Vector3d(0., 0., 1.));
+        corrected_frame[i] =
+            Eigen::AngleAxisd(VERTICAL_ANGLE_OFFSET, rotation_vector.normalized()) * pt;
     });
     return corrected_frame;
 }

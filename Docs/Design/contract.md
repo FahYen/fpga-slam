@@ -1,17 +1,19 @@
 # Shared-Memory RangeNet -> SG-SLAM Contract
 
-This replaces the temporary file/basename `.label` handoff. The interface is
-a shared-memory FIFO carrying complete labeled LiDAR frames from `RangeNet`
-to `SG-SLAM`, implemented under `rangenet_sgslam_ipc/`.
+This replaces the temporary file/basename `.label` handoff for the live GPU
+path. The interface is a shared-memory FIFO carrying complete labeled LiDAR
+frames from `RangeNet` to `SG-SLAM`, implemented under
+`rangenet_sgslam_ipc/`.
 
 ## Variant
 
 - **SPSC**: one `RangeNet` producer, one `SG-SLAM` consumer.
-- **Drop-oldest**: producer never blocks. When all unheld slots are
-  occupied, the next publish overwrites the oldest unheld slot. The
-  consumer observes this on the next acquire as `skipped_before > 0` and
-  the global `drop_count` atomic is incremented by exactly the number of
-  lost frames.
+- **Drop-oldest**: producer never blocks. It first reuses any free
+  unreadable slot (`slot_seq == 0`); only when all unheld slots still
+  contain unread data does the next publish overwrite the oldest unheld
+  slot. The consumer observes this on the next acquire as
+  `skipped_before > 0` and the global `drop_count` atomic is incremented
+  by exactly the number of lost frames.
 - **Zero-copy reads with acquire/release lifetime**: the consumer receives
   const pointers directly into shared memory and reads in place. While a
   slot is held, the producer is forbidden from overwriting it; the
@@ -105,7 +107,8 @@ Each slot has one `_Atomic uint64_t slot_seq[i]`:
 
 The `+1` offset reserves `0` as the "no readable frame" sentinel.
 
-Producer claim: `CAS(cur -> 0)` on the next non-`HELD` slot in cursor order.
+Producer claim: prefer the first `0` slot in cursor order; otherwise
+`CAS(oldest_seq+1 -> 0)` on the oldest non-`HELD` published slot.
 Consumer claim: `CAS(seq+1 -> seq+1 | HELD_BIT)` on the slot with the
 lowest `seq >= consumer_next`. Under SPSC, CAS contention is bounded to a
 single retry per operation.
@@ -173,14 +176,19 @@ Single-producer and single-consumer enforced at the API boundary by
 
 ## SG-SLAM Integration
 
-- Replace basename-based `loadCloud(<frame>.bin, <frame>.label)` with a
-  `FrameSource` abstraction whose shm implementation calls
-  `rnsg_consumer_acquire` and exposes `points` / `labels` as `const`
-  spans into shm. `mainProcess(frame, labels, timestamps, dataset)`
-  remains unchanged.
-- The consumer must finish all reads (including the per-point
-  `Eigen::Vector3d` construction) before calling `release`. RAII-shape the
-  C++ wrapper so missed releases cannot occur on exception unwinding.
+- The non-ROS consumer is implemented as
+  `SG-SLAM/cpp/semgraph_slam/apps/sgslam_ipc_runner.cpp`.
+- Input selection now sits behind a `FrameSource` abstraction:
+  `FileFrameSource` preserves the existing `.bin` + `.label` replay path and
+  `IpcFrameSource` wraps `rnsg_consumer_acquire()` /
+  `rnsg_consumer_release()`.
+- `SemGraphSLAM` now has a borrowed-frame ingress that accepts a
+  `BorrowedFrameView {const float *points_xyzi, const int32_t *raw_labels,
+  num_points}`. This keeps the IPC transport zero-copy up to the SG-SLAM
+  front-end boundary instead of forcing an eager copy in the adapter.
+- The consumer still must finish all reads before calling `release`. The
+  `FrameLease` RAII wrapper in the app layer enforces this on normal and
+  exceptional exits.
 - Remove artificial playback pacing from the hot path; process each frame
   as soon as a complete labeled frame is ready.
 - **Set `cloudInd = rnsg_frame_view::consumed_index`** (the dense
@@ -200,6 +208,32 @@ Single-producer and single-consumer enforced at the API boundary by
 - The file-based `.label` path stays available behind the same
   `FrameSource` polymorphism for offline replay and CI.
 
+## Producer Integration
+
+- The live GPU producer is implemented as
+  `RangeNet/train/tasks/semantic/stream_sgslam_ipc.py`.
+- It reuses the existing `RangeNet` model loading and `predict_scan()`
+  inference path, but publishes directly to shared memory instead of writing
+  `.label` files.
+- The producer reads KITTI `.bin` scans in file order, preserves original
+  `XYZI` point order, paces playback at the requested scan rate (default
+  `10 Hz`), and publishes raw SemanticKITTI labels with
+  `RNSG_FLAG_RAW_SEMANTICKITTI_LABELS`.
+
+## Operational Artifacts
+
+The implemented live path writes searchable traces on disk so failures can be
+debugged later without repeating a full GPU run:
+
+- Producer JSONL trace: per-frame publish record with scan path, `frame_id`,
+  point count, inference latency, publish latency, drop counters, device, and
+  model path.
+- Producer manifest JSON: run-level metadata such as ring name, slot count,
+  capacity, scan root, and selected model directory.
+- Consumer CSV trace: `status`, `source`, `frame_id`, `consumed_index`,
+  `skipped_before`, `num_points`, acquire wait, front-end latency,
+  capture-to-consume latency, and publish-to-consume latency.
+
 ## Notes
 
 - The key invariant remains: `scan_i` must always be paired with
@@ -209,6 +243,6 @@ Single-producer and single-consumer enforced at the API boundary by
   It is producer-assigned and SPARSE under drop-oldest. Use
   `consumed_index` for any consumer-side structural indexing; see
   "Frame indexing" above.
-- Defaults: `slot_count = 4`, `capacity_points = 200000`. Each slot is
+- Defaults: `slot_count = 8`, `capacity_points = 200000`. Each slot is
   `sizeof(header) + capacity_points * (16 + 4)` bytes ~ 4 MB; total ring
-  footprint ~ `slot_count * slot_bytes` ~ 16 MB.
+  footprint is therefore roughly `8 * slot_bytes` ~ 32 MB.

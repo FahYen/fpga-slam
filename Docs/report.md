@@ -62,3 +62,55 @@
 - v3 log: `aws_runs/20260412T001429Z_int6_int4_perchan/quantize_int6_int4_perchan_10frames.log`
 - v3 environment receipts: `aws_runs/20260412T001429Z_int6_int4_perchan/torch-check.txt`, `aws_runs/20260412T001429Z_int6_int4_perchan/nvidia-smi.txt`, `aws_runs/20260412T001429Z_int6_int4_perchan/pip-freeze.txt`
 - AWS run script: `aws_runs/20260405T180709Z/remote_quantize.sh`
+
+## AWS GPU IPC Integration
+
+### Setup
+
+- **Date**: `2026-04-19`
+- **Run id**: `aws_runs/20260419T162450Z`
+- **Instance**: `g5.xlarge`
+- **GPU**: `NVIDIA A10G`
+- **Torch/CUDA**: `torch 2.11.0+cu128`, `cuda_available=True`
+- **Flow tested**: `KITTI seq 00 -> RangeNet GPU -> rnsg_ipc -> SG-SLAM IPC consumer`
+
+### End-to-End Result
+
+- The non-ROS `RangeNet -> IPC -> SG-SLAM` path ran successfully on AWS GPU.
+- Producer completed all `4541` KITTI scans.
+- SG-SLAM consumer processed `4344` frames and wrote `4344` odometry lines.
+- Producer-side dropped frames: `196`
+- Consumer-side skipped frames observed: `197`
+- Shutdown behavior was clean: the consumer stopped after `10` consecutive timeouts once the producer finished.
+
+### Timing Notes
+
+- **RangeNet point-load average**: `161.3 ms`
+- **RangeNet infer average**: `70.1 ms`
+- **RangeNet infer p95**: `76.2 ms`
+- **SG-SLAM frontend average**: `70.5 ms`
+- **SG-SLAM frontend p95**: `179.3 ms`
+
+Producer-side per-frame time before IPC publish was approximately:
+
+```text
+161.3 ms (point load) + 70.1 ms (inference) ~= 231.4 ms
+```
+
+That means this setup did **not** sustain a true `10 Hz` end-to-end rate for the full run. The producer trace ended with about `613.6 s` of accumulated playback lag.
+
+`p95` means the 95th percentile: `95%` of measured frames were at or below that latency, and the slowest `5%` were above it.
+
+### Caveat
+
+- This run confirmed the live GPU producer, IPC handoff, and SG-SLAM IPC consumer/odometry path.
+- `kitti_slam_00.txt`, `graph_map_00.txt`, and `graph_edge_00.txt` were not produced in this AWS run, so the validated path here is strongest for the front-end/odometry side rather than final back-end map export.
+
+### Integration Artifacts
+
+- Run summary: `aws_runs/20260419T162450Z/remote-results/run-summary.txt`
+- Producer manifest: `aws_runs/20260419T162450Z/remote-results/rangenet_ipc_manifest.json`
+- Producer trace: `aws_runs/20260419T162450Z/remote-results/rangenet_ipc_trace.jsonl`
+- Consumer trace: `aws_runs/20260419T162450Z/remote-results/sgslam_consumer_trace.csv`
+- Odometry output: `aws_runs/20260419T162450Z/remote-results/kitti_odometry_00.txt`
+- Environment receipts: `aws_runs/20260419T162450Z/remote-results/torch-check-gtsam.txt`, `aws_runs/20260419T162450Z/remote-results/nvidia-smi.txt`, `aws_runs/20260419T162450Z/remote-results/pip-freeze.txt`

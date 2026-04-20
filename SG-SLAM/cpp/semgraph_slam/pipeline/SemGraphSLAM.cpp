@@ -53,6 +53,15 @@ double ComputePercentileMs(std::vector<double> values, double percentile) {
     return values[idx];
 }
 
+V3d MaterializePoints(const BorrowedFrameView &frame) {
+    V3d points(frame.num_points);
+    tbb::parallel_for(std::size_t(0), frame.num_points, [&](std::size_t i) {
+        const float *point = frame.points_xyzi + (i * 4U);
+        points[i] = Eigen::Vector3d(point[0], point[1], point[2]);
+    });
+    return points;
+}
+
 class BuildGraphTimingLogger {
 public:
     static BuildGraphTimingLogger &Instance() {
@@ -490,6 +499,176 @@ SemGraphSLAM::V3d_i_pair_graph SemGraphSLAM::mainProcess(const V3d &frame, const
     FrontendPipelineLogger::Instance().Record(dataset,
                                               poses_.size(),
                                               frame.size(),
+                                              cluster_box.size(),
+                                              graph.node_labels.size(),
+                                              graph.edges.size(),
+                                              stage_times);
+
+    return {frame_downsample_cluster, source, graph};
+}
+
+SemGraphSLAM::V3d_i_pair_graph SemGraphSLAM::mainProcess(const BorrowedFrameView &frame,
+                                                         const std::vector<double> &timestamps,
+                                                         std::string dataset) {
+
+    FrontendStageTimes stage_times;
+    const auto total_t0 = std::chrono::steady_clock::now();
+
+    V3d_i cropped_frame_label;
+
+    const auto deskew_t0 = std::chrono::steady_clock::now();
+    V3d deskew_frame;
+    bool has_materialized_points = false;
+    if (config_.deskew && !timestamps.empty()) {
+        deskew_frame = MaterializePoints(frame);
+        has_materialized_points = true;
+        const size_t N = poses().size();
+        if (N > 2) {
+            const auto &start_pose = poses_[N - 2];
+            const auto &finish_pose = poses_[N - 1];
+            deskew_frame = DeSkewScan(deskew_frame, timestamps, start_pose, finish_pose);
+        }
+    }
+    const auto deskew_t1 = std::chrono::steady_clock::now();
+    stage_times.deskew_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(deskew_t1 - deskew_t0).count();
+
+    const auto kitti_t0 = std::chrono::steady_clock::now();
+    V3d corrected_frame;
+    if (dataset == "kitti") {
+        corrected_frame = has_materialized_points ? CorrectKITTIScan(deskew_frame)
+                                                  : CorrectKITTIScan(frame);
+        has_materialized_points = true;
+    }
+    const auto kitti_t1 = std::chrono::steady_clock::now();
+    stage_times.kitti_correct_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(kitti_t1 - kitti_t0).count();
+
+    const auto preprocess_t0 = std::chrono::steady_clock::now();
+    if (has_materialized_points) {
+        const V3d &frame_for_preprocess = (dataset == "kitti") ? corrected_frame : deskew_frame;
+        cropped_frame_label = PreprocessSemantic(frame_for_preprocess,
+                                                 frame.raw_labels,
+                                                 frame.num_points,
+                                                 config_.max_range,
+                                                 config_.min_range);
+    } else {
+        cropped_frame_label = PreprocessSemantic(frame, config_.max_range, config_.min_range);
+    }
+    const auto preprocess_t1 = std::chrono::steady_clock::now();
+    stage_times.preprocess_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(preprocess_t1 - preprocess_t0).count();
+
+    const auto voxelize_t0 = std::chrono::steady_clock::now();
+    const auto &[source, frame_downsample, frame_downsample_cluster] = VoxelizeSemantic(cropped_frame_label);
+    const auto voxelize_t1 = std::chrono::steady_clock::now();
+    stage_times.voxelize_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(voxelize_t1 - voxelize_t0).count();
+
+    V3d_i foreground_points;
+    V3d_i background_points;
+    const auto cluster_t0 = std::chrono::steady_clock::now();
+    auto cluster_box = ClusterPoints(frame_downsample_cluster.first, frame_downsample_cluster.second,
+                                     background_points, foreground_points,
+                                     config_.deltaA, config_.deltaR, config_.deltaP);
+    const auto cluster_t1 = std::chrono::steady_clock::now();
+    stage_times.cluster_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(cluster_t1 - cluster_t0).count();
+
+    const auto buildgraph_t0 = std::chrono::steady_clock::now();
+    auto graph = BuildGraph(cluster_box,config_.edge_dis_th,config_.subinterval,config_.graph_node_dimension,config_.subgraph_edge_th);
+    const auto buildgraph_t1 = std::chrono::steady_clock::now();
+    const double buildgraph_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(buildgraph_t1 - buildgraph_t0).count();
+    stage_times.buildgraph_ms = buildgraph_ms;
+    BuildGraphTimingLogger::Instance().Record(buildgraph_ms,
+                                               cluster_box.size(),
+                                               graph.node_labels.size(),
+                                               graph.edges.size(),
+                                               dataset);
+    graph.back_points = background_points;
+    graph.front_points = foreground_points;
+
+    const auto find_match_t0 = std::chrono::steady_clock::now();
+    const auto frame2map_match =  local_graph_map_.FindInsMatch(graph);
+    const auto find_match_t1 = std::chrono::steady_clock::now();
+    stage_times.find_match_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(find_match_t1 - find_match_t0).count();
+
+    const auto threshold_t0 = std::chrono::steady_clock::now();
+    const double sigma = GetAdaptiveThreshold();
+    const auto threshold_t1 = std::chrono::steady_clock::now();
+    stage_times.threshold_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(threshold_t1 - threshold_t0).count();
+
+    const auto prediction_t0 = std::chrono::steady_clock::now();
+    const auto prediction = GetPredictionModel();
+    const auto last_pose = !poses_.empty() ? poses_.back() : Sophus::SE3d();
+    const auto initial_guess = last_pose * prediction;
+    const auto prediction_t1 = std::chrono::steady_clock::now();
+    stage_times.prediction_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(prediction_t1 - prediction_t0).count();
+
+    initial_guess_for_relocalization = initial_guess;
+
+    const auto fuse_t0 = std::chrono::steady_clock::now();
+    const auto source_4d = FusePointsAndLabels(source);
+    const auto frame_downsample_4d = FusePointsAndLabels(frame_downsample);
+    const auto fuse_t1 = std::chrono::steady_clock::now();
+    stage_times.fuse_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(fuse_t1 - fuse_t0).count();
+
+    const auto registration_t0 = std::chrono::steady_clock::now();
+    Sophus::SE3d new_pose = RegisterFrameSemantic(source_4d,
+                                                  local_map_,
+                                                  initial_guess,
+                                                  3.0 * sigma,
+                                                  sigma / 3.0);
+    const auto registration_t1 = std::chrono::steady_clock::now();
+    stage_times.registration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(registration_t1 - registration_t0).count();
+
+    auto model_deviation = initial_guess.inverse() * new_pose;
+
+    const auto relocalization_t0 = std::chrono::steady_clock::now();
+    relocalization_corr = std::make_pair(V3d(),V3d());
+    if(poses_.size()>2 && config_.relocalization_enable){
+        if(model_deviation.translation().norm()>config_.model_deviation_trans || model_deviation.so3().log().norm()>config_.model_deviation_rot){
+            std::cout<<YELLOW<<"[ Relo. ] relocalization"<<std::endl;
+            const auto [initial_guess_graph, estimate_poses_flag] = local_graph_map_.Relocalization(graph, frame2map_match,config_.inlier_rate_th);
+
+            std::cout<<YELLOW<<"[ Relo. ] estimate_poses_flag:"<<estimate_poses_flag<<std::endl;
+            if(estimate_poses_flag){
+                new_pose = RegisterFrameSemantic(source_4d,
+                                                 local_map_,
+                                                 initial_guess_graph,
+                                                 3.0 * sigma,
+                                                 sigma / 3.0);
+                model_deviation = Sophus::SE3d();
+                relocalization_corr = local_graph_map_.relo_corr;
+            }
+            else{
+                relocalization_corr = std::make_pair(V3d(),V3d());
+            }
+        }
+    }
+    const auto relocalization_t1 = std::chrono::steady_clock::now();
+    stage_times.relocalization_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(relocalization_t1 - relocalization_t0).count();
+
+    const auto model_update_t0 = std::chrono::steady_clock::now();
+    adaptive_threshold_.UpdateModelDeviation(model_deviation);
+    const auto model_update_t1 = std::chrono::steady_clock::now();
+    stage_times.model_update_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(model_update_t1 - model_update_t0).count();
+
+    const auto local_map_update_t0 = std::chrono::steady_clock::now();
+    local_map_.Update(frame_downsample_4d, new_pose);
+    const auto local_map_update_t1 = std::chrono::steady_clock::now();
+    stage_times.local_map_update_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(local_map_update_t1 - local_map_update_t0).count();
+
+    const auto local_graph_update_t0 = std::chrono::steady_clock::now();
+    local_graph_map_.Update(graph, frame2map_match, new_pose);
+    const auto local_graph_update_t1 = std::chrono::steady_clock::now();
+    stage_times.local_graph_update_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(local_graph_update_t1 - local_graph_update_t0).count();
+
+    const auto push_pose_t0 = std::chrono::steady_clock::now();
+    poses_.push_back(new_pose);
+    const auto push_pose_t1 = std::chrono::steady_clock::now();
+    stage_times.push_pose_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(push_pose_t1 - push_pose_t0).count();
+
+    const auto total_t1 = std::chrono::steady_clock::now();
+    stage_times.total_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(total_t1 - total_t0).count();
+    FrontendPipelineLogger::Instance().Record(dataset,
+                                              poses_.size(),
+                                              frame.num_points,
                                               cluster_box.size(),
                                               graph.node_labels.size(),
                                               graph.edges.size(),

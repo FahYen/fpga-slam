@@ -23,6 +23,8 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <cstddef>
+#include <cstdint>
 #include <sophus/se3.hpp>
 #include <utility>
 #include <vector>
@@ -39,11 +41,20 @@ V3d_i  PreprocessSemantic(const std::vector<Eigen::Vector3d> &frame,
                                         const std::vector<int> &label,
                                         double max_range,
                                         double min_range);
+V3d_i  PreprocessSemantic(const std::vector<Eigen::Vector3d> &frame,
+                                        const std::int32_t *raw_labels,
+                                        std::size_t label_count,
+                                        double max_range,
+                                        double min_range);
+V3d_i  PreprocessSemantic(const BorrowedFrameView &frame,
+                                        double max_range,
+                                        double min_range);
                                         
 /// This function only applies for the KITTI dataset, and should NOT be used by any other dataset,
 /// the original idea and part of the implementation is taking from CT-ICP(Although IMLS-SLAM
 /// Originally introduced the calibration factor)
 std::vector<Eigen::Vector3d> CorrectKITTIScan(const std::vector<Eigen::Vector3d> &frame);
+std::vector<Eigen::Vector3d> CorrectKITTIScan(const BorrowedFrameView &frame);
 
 /// Voxelize point cloud keeping the original coordinates
 std::vector<Eigen::Vector3d> VoxelDownsample(const std::vector<Eigen::Vector3d> &frame,
